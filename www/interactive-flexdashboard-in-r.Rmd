@@ -1,0 +1,409 @@
+---
+title: "Zomato Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(knitr)
+library(DT)
+library(scales)
+library(plotly)
+library(highcharter)
+library(leaflet)
+library(tidyverse)
+library(xlsx)
+library(viridisLite)
+library(RColorBrewer)
+library(wordcloud)
+library(plotly)
+library(wordcloud2)
+library(rpivotTable)
+library(htmlwidgets)
+library(openintro)
+library(countrycode)
+library(leaflet.extras)
+```
+
+
+```{r}
+rest_data<-read.csv("../input/zomato.csv")
+
+country<-read.xlsx("../input/Country-Code.xlsx",1)
+rest_data<-rest_data %>%inner_join(country,by="Country.Code")
+
+```
+
+Maps {data-orientation=rows }
+==============================
+Row {data-height=50}
+--------------------------
+
+Row {data-height=400}
+------------------------------
+### Restaurants by Country {.tabset .tabset-fade}
+
+```{r}
+ctry<-rest_data %>%group_by(Country)%>%summarize(cnt=n())%>%arrange(desc(cnt))
+data(worldgeojson, package = "highcharter")
+code <- countrycode(ctry$Country, 'country.name', 'iso3c')
+ctry$iso3 <- code
+data(worldgeojson, package = "highcharter")
+
+
+ highchart() %>% 
+                  hc_add_series_map(worldgeojson, ctry, value = "cnt", joinBy = "iso3") %>% 
+                  hc_colorAxis(stops = color_stops()) %>% 
+                  hc_legend(enabled = TRUE) %>%  
+                  hc_mapNavigation(enabled = TRUE) %>%
+                  hc_title(text = "Restaraunts by Country")  %>%
+                  hc_tooltip(useHTML = TRUE, headerFormat = "",
+                            pointFormat = "Country: {point.Country} Total Restaurant: {point.cnt}") %>%  hc_add_theme(hc_theme_google())
+
+
+```
+
+### Map2
+
+```{r}
+geo<-rest_data%>%select(Country, Longitude,Latitude)%>%group_by(Country)
+
+l <- leaflet() %>% addTiles()
+
+
+geo.df <- split(geo, geo$Country)
+
+l2 <- l
+names(geo.df) %>%
+  purrr::walk( function(df) {
+    l2 <<- l2 %>%
+      addMarkers(data=geo.df[[df]],
+                          lng=~Longitude, lat=~Latitude,
+                          label=~Country,
+                          popup=~Country,
+                          group = df,
+                          clusterOptions = markerClusterOptions(removeOutsideVisibleBounds = F),
+                          labelOptions = labelOptions(noHide = T,
+                                                       direction = 'auto'))
+  })
+
+l2 %>%
+  addLayersControl(
+    overlayGroups = names(geo.df),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+```
+
+Row {data-height=400}
+-----------------------------------
+
+### Restaurants by Rating  
+
+```{r}
+rating<-rest_data%>%select(Restaurant.Name,Longitude,Latitude,Aggregate.rating, )%>%filter(!is.na(Aggregate.rating))%>%mutate(rating_levels=cut(Aggregate.rating,c(1,2,3,4,5),labels=c('0-1.9','2-2.9','3-3.9','4-5')))
+
+col<-rest_data$Rating.color
+
+pal <- colorFactor(rainbow(5),levels=rating$rating_levels)
+
+l<-leaflet() %>% addProviderTiles(providers$CartoDB.DarkMatterNoLabels)
+
+rating.df <- split(rating, rating$rating_levels)
+l2 <- l
+names(rating.df) %>%
+  purrr::walk( function(df) {
+    l2 <<- l2 %>%
+      addCircleMarkers(data=rating.df[[df]],
+                          lng=~Longitude, lat=~Latitude,
+                          label=~paste0(Restaurant.Name," ",Aggregate.rating),
+                                                    group = df,
+                          stroke=FALSE, fillColor=~pal(rating_levels), fillOpacity = 1,  radius=~(as.numeric(rating.df[[df]]$rating_levels)))
+  }
+  )
+
+l2 %>%
+  addLayersControl(
+    overlayGroups = names(rating.df),
+    options = layersControlOptions(collapsed = FALSE)
+  )%>%setView( median(rest_data$Longitude), median(rest_data$Latitude), zoom = 2 )
+```
+
+Restaurants {data-orientation=rows data-icon="fa-bar-chart" }
+======================================================================
+
+## Row {data-height=100}
+-------------------------
+
+## Row 1 {data-height=110 }
+----------------------------------------------------------------------
+
+### Restaurants  
+
+```{r}
+valueBox(length(unique(rest_data$Restaurant.Name)),icon = "ion-restaurant",color="red")
+```
+
+### Countries  
+
+```{r}
+valueBox(length(unique(rest_data$Country.Code)),icon="fa-globe",color="green")
+```
+
+
+### Cuisines  
+```{r}
+valueBox(length(unique(rest_data$Cuisines)),icon="fa-coffee",color="brown")
+```
+
+### Cities
+
+```{r}
+valueBox(length(unique(rest_data$City)),icon="fa-globe")
+```
+
+
+## Row 2 {data-height=250}
+-----------------------------------------------------------------------
+
+### Restaurants by Rating  
+
+```{r}
+rest_rate<-rest_data %>% group_by(Rating.text)%>%summarize(rcnt=n())
+rest_rate %>%
+plot_ly(labels=~Rating.text,values=~rcnt) %>%
+  add_pie(hole=0.3) 
+```
+
+### Booking Facility
+
+```{r}
+rest_data %>%group_by(Has.Table.booking)%>%summarize(tbcnt=n())%>%
+plot_ly(labels=~Has.Table.booking,values=~tbcnt) %>%
+  add_pie(hole=0.3) 
+```
+
+### Online Develiery
+
+```{r}
+rest_data %>%group_by(Has.Online.delivery)%>%summarize(tbcnt=n())%>%
+plot_ly(labels=~Has.Online.delivery,values=~tbcnt) %>%
+  add_pie(hole=0.3)
+```
+
+## Row 3 {.tabset .tabset-fade}
+----------------------------------------------------------------------
+
+
+### Restaurants per Country
+
+```{r}
+ctry<-rest_data %>%group_by(Country)%>%summarize(cnt=n())%>%arrange(desc(cnt))
+highchart() %>%
+  hc_xAxis(categories = ctry$Country) %>% 
+  hc_add_series(name = "No of Restaraunts", data = ctry$cnt, colorByPoint =  TRUE) %>% 
+    hc_chart(type = "bar", options3d = list(enabled = TRUE, beta = 1, alpha = 1)) %>% hc_add_theme(hc_theme_google())
+```
+
+### Top Cities
+```{r}
+
+city<-rest_data %>%group_by(City)%>%summarize(cnt=n())%>%arrange(desc(cnt))%>%head(15)
+highchart() %>%
+  hc_xAxis(categories = city$City) %>% 
+  hc_add_series(name = "No of Restaraunts", data = city$cnt, colorByPoint =  TRUE) %>% 
+  hc_chart(type = "column", options3d = list(enabled = TRUE, beta = 1, alpha = 1)) %>% hc_add_theme(hc_theme_google())
+
+```
+
+### Top Restaurants by Votes
+
+```{r}
+rest<-rest_data %>%select(Restaurant.Name,Votes)%>%arrange(desc(Votes))%>%head(10)
+highchart() %>%
+  hc_xAxis(categories = rest$Restaurant.Name) %>% 
+  hc_add_series(name = "No of Votes", data = rest$Votes, colorByPoint =  TRUE) %>% 
+  hc_chart(type = "column", options3d = list(enabled = TRUE, beta = 1, alpha = 1)) %>% hc_add_theme(hc_theme_google())
+```
+
+### Popular Restaurant Names
+```{r}
+
+res_name<-rest_data %>%group_by(Restaurant.Name)%>%summarize(rescnt=n())%>%arrange(desc(rescnt))%>%head(200)
+wordcloud(res_name$Restaurant.Name,res_name$rescnt, random.order=FALSE, rot.per=0.35, use.r.layout=FALSE, colors=brewer.pal(8, "Dark2"))
+```
+
+Cuisines {data-orientation=rows icon="fa-utensils" }
+======================================================================
+
+## Row {data-height=50}
+-----------------------------------------------------
+
+## Row 1 {data-height=450}
+---------------------------------------------------------------------
+
+### Cuisines worldwide  
+
+```{r}
+cuisines <- rest_data %>%
+  select(Country, Cuisines) %>%
+    mutate(Cuisines=strsplit(as.character(Cuisines), ", ")) %>%
+  unnest(Cuisines) %>%
+    group_by(Cuisines) %>%
+  summarise(Count = n()) %>%
+  arrange(desc(Count))%>%head(20)
+
+
+hchart(cuisines, "treemap", hcaes(x = Cuisines, value = Count, color = Count))
+
+```
+
+## Row 2 {data-height=450 .tabset .tabset-fade}
+---------------------------------------------------------------------------
+
+### Cuisines - USA
+
+```{r }
+cui_all<-rest_data %>%
+  select(Country, Cuisines) %>%
+    mutate(Cuisines=strsplit(as.character(Cuisines), ", ")) %>%
+  unnest(Cuisines) %>%
+    group_by(Country,Cuisines) %>%
+  summarise(Count = n()) %>%
+  arrange(desc(Count))
+us<-cui_all %>%filter(Country=="United States")
+wordcloud(us$Cuisines,us$Count, random.order=FALSE, rot.per=0.35, use.r.layout=FALSE, colors=brewer.pal(8, "Dark2"))
+
+```
+
+### Cuisines - India
+
+```{r}
+india<-cui_all %>%filter(Country=="India")
+wordcloud(india$Cuisines,india$Count, random.order=FALSE, rot.per=0.35, use.r.layout=FALSE, colors=brewer.pal(8, "Dark2"))
+
+```
+
+
+
+
+
+Price {data-orientation=rows }
+===================================
+
+## Row {data-height=50}
+-------------------------------
+
+## Row { data-height=400}
+----------------------------------
+
+### Restaurants by Price Range
+
+
+```{r}
+rest_data %>% group_by(Price.range)%>%
+  summarise(pcnt=n())%>%
+  plot_ly(x=~Price.range,
+         y=~pcnt,
+         fill="blue",
+         type='bar')%>%
+  layout(xaxis=list(title="Restaraunts by Price Range"), yaxis=list(title="Count"))
+```
+
+### Rating Vs Votes
+
+```{r}
+
+
+hc_p1<-hchart(rest_data, "scatter",hcaes(x = Votes, y = Aggregate.rating,group=1))
+  hc_p1<-hc_p1 %>%hc_title(text = "Votes vs Rating") %>% 
+  hc_xAxis(title = list(text = "Votes")) %>% 
+  hc_yAxis(title = list(text = "Rating")) %>% 
+  hc_chart(zoomType = "xy") 
+
+hc_p1
+```
+
+## Row {data-height=400}
+-------------------------------
+
+### Costlier Restaurant  -India
+
+```{r}
+cost<-rest_data %>%filter(Country =="India") %>%select(Restaurant.Name,Average.Cost.for.two,Currency)%>%arrange(desc(Average.Cost.for.two))%>%head(10)
+highchart() %>%
+  hc_xAxis(categories = cost$Restaurant.Name) %>% 
+  hc_add_series(name = "Average cost for two", data = cost$Average.Cost.for.two, colorByPoint =  TRUE) %>% 
+  hc_title(text = "Costlier Restaurants-India")  %>%
+  hc_chart(type = "bar", options3d = list(enabled = TRUE, beta = 1, alpha = 1)) %>% hc_add_theme(hc_theme_google())
+```
+### United States 
+
+```{r}
+cost<-rest_data %>%filter(Country =="United States") %>%select(Restaurant.Name,Average.Cost.for.two,Currency)%>%arrange(desc(Average.Cost.for.two))%>%head(10)
+highchart() %>%
+  hc_xAxis(categories = cost$Restaurant.Name) %>% 
+  hc_add_series(name = "Average cost for two", data = cost$Average.Cost.for.two, colorByPoint =  TRUE) %>% 
+  hc_title(text = "Costlier Restaurants-US")  %>%
+  hc_chart(type = "bar", options3d = list(enabled = TRUE, beta = 1, alpha = 1)) %>% hc_add_theme(hc_theme_google())
+```
+
+### Average Cost for two vs Rating
+
+```{r}
+
+
+hc_p1<-hchart(rest_data, "scatter",hcaes(x = Average.Cost.for.two, y = Aggregate.rating,group=1))
+  hc_p1<-hc_p1 %>%hc_title(text = "Avg Cost vs Rating") %>% 
+  hc_xAxis(title = list(text = "Average Cost for two")) %>% 
+  hc_yAxis(title = list(text = "Rating")) %>% 
+  hc_chart(zoomType = "xy") 
+
+hc_p1
+```
+
+Search {data-orientation=rows data-icon="fa-list" }
+================================
+
+## Row {data-height=50}
+-------------------------
+
+## Row {data-height=900 data-width=800}
+----------------------------
+
+### Find your favorite Restaurants  - Rating >3
+
+
+```{r}
+dt<-rest_data %>%filter(Aggregate.rating>3) %>%select(Restaurant.Name,Country,Address,Cuisines,Average.Cost.for.two,Has.Table.booking,Has.Online.delivery,Aggregate.rating,Votes)
+datatable(dt,
+caption="Best Restaurants",
+rownames=T,
+filter="top",
+options = list(  pageLength = 10
+))
+
+```
+
+About {data-orientation=rows }
+=====================================================
+
+## Row {data-height=100}
+---------------------------
+
+
+## Row  
+----------
+Kernel was about how to build interactive dashboard in R with package **flexdashboard **
+
+The Following options has been used in this kernel
+
+1) Multiple Pages
+2) tabset in Pages
+3) Multiple plot layout
+4) icons
+5) valueboxes
+
+References :
+https://rmarkdown.rstudio.com/flexdashboard/using.html

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<style type="text/css" media="screen">
+ 
+iframe { 
+  z-index: 999999;
+}
+
+</style>
+<script src="underscore-min.js"></script>    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src='https://rawgit.com/RickStrahl/jquery-resizable/master/src/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+  var editor;
+  var resultHTML;
+
+  function domarkdown(e){
+	var reqText = editor.getSession().getValue();
+console.log(reqText);
+    var req = ocpu.call("rmdtext", {
+      text : reqText
+    }, function(session){
+      resultHTML = session.getFileURL("output.html");
+	  $("iframe").attr('src', resultHTML);
+
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+$(function(){
+
+  el = document.getElementById("coding");
+  text = el.textContent;
+console.log(text);
+  editor = ace.edit(el);
+  editor.session.setValue(text);
+
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+//  editor.on("change", update);
+  
+  //init on start
+//  domarkdown();  
+
+
+});
+
+
+
+</script>
+
+
+</head>
+<body>
+
+<button onclick="domarkdown();">Run</button>
+<button onclick="winf=window.open(resultHTML); return false;">Print</button>
+
+<div class="panel-container">
+            <div id=coding class="panel-left">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r echo=FALSE}
+library(htmltools)
+
+htmltools::h1('Hi')
+htmltools::tags$li('Hello')
+
+```
+
+This summation expression $\sum_{i=1}^n X_i$ appears inline.
+
+\[
+\begin{eqnarray}
+X & \sim & \mathrm{N}(0,1)\\
+Y & \sim & \chi^2_{n-p}\\
+R & \equiv & X/Y \sim t_{n-p}
+\end{eqnarray}
+\]
+
+
+\[\left( \sum_{i=1}^{n}{i} \right)^2 = \left( \frac{n(n-1)}{2}\right)^2 = \frac{n^2(n-1)^2}{4}\]
+
+```{r, results='asis'}
+library(DT)
+datatable(iris)
+```
+
+            </div>
+
+            <div class="splitter">
+            </div>
+
+            <div class="panel-right">
+<iframe id=result width=100% height=100% name=result src=""></iframe>
+            </div>
+</div>
+
+<script>
+$(".panel-left").resizable({
+   handleSelector: ".splitter",
+   resizeHeight:  false
+ });
+</script>
+
+
+</body>
+</html>

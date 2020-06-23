@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>Boxplot</title>
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/sheetjs.css">
+<link rel="stylesheet" href="assets/vendor/alertify.css">
+<style type="text/css" media="screen">
+	iframe { z-index: 999999; }
+</style>
+
+<script src="assets/js/shim.js"></script>
+<script src="assets/js/xlsx.full.min.js"></script>
+<script src="assets/js/dropsheet.js"></script>
+<script src="assets/vendor/spin.js"></script>
+<script src="assets/vendor/alertify.js"></script>
+<script src="assets/js/underscore-min.js"></script>
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+	var editor;
+	var resultHTML;
+
+	function domarkdown(e){
+		var req = ocpu.call("rmdtext", {
+			text : editor.getSession().getValue()
+		}, function(session){
+			console.log(session);
+			resultHTML = session.getFileURL("output.html");
+			$("iframe").attr('src', resultHTML);
+		}).fail(function(text){
+			alert("Error: " + req.responseText);
+		});
+	}
+
+	$(function(){
+		editor = ace.edit("coding");
+		editor.setTheme("ace/theme/monokai");
+		editor.getSession().setMode("ace/mode/r");
+		editor.getSession().setUseWrapMode(true);
+		editor.setFontSize("14px");
+
+		
+		/* oss.sheetjs.com (C) 2014-present SheetJS -- http://sheetjs.com */
+		/* vim: set ts=2: */
+		
+		/** drop target **/
+		var _target = document.getElementById('drop');
+		var _file = document.getElementById('file');
+		var _grid = document.getElementById('grid');
+		
+		/** Spinner **/
+		var spinner;
+		
+		var _workstart = function() { spinner = new Spinner().spin(_target); }
+		var _workend = function() { spinner.stop(); }
+		
+		/** Alerts **/
+		var _badfile = function() {
+			alertify.alert('This file does not appear to be a valid Excel file.  If we made a mistake, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can take a look.', function(){});
+		};
+		var _pending = function() {
+			alertify.alert('Please wait until the current file is processed.', function(){});
+		};
+		var _large = function(len, cb) {
+			alertify.confirm("This file is " + len + " bytes and may take a few moments.  Your browser may lock up during this process.  Shall we play?", cb);
+		};
+		var _failed = function(e) {
+			console.log(e, e.stack);
+			alertify.alert('We unfortunately dropped the ball here.  Please test the file using the <a href="/js-xlsx/">raw parser</a>.  If there are issues with the file processor, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can make things right.', function(){});
+		};
+		
+		var _onsheet = function(json, sheetnames, select_sheet_cb) {
+			// console.log(json);
+			var rcommand = '';
+			rcommand += '---\n'+
+			'output:\n'+
+			'  html_document:\n'+
+			'    code_folding: hide\n'+
+			'---\n'+
+			'```{r block2, message=FALSE, fig.width=8, fig.height=5, dev="svg"}\n'+
+			'library(ggpubr)\n';
+			
+			rcommand += 'datasheet = data.frame('+json[0][0]+'=c(';
+			for (var i=1; i<json.length; i++) {
+				rcommand += json[i][0].replace(/\"/g,'') + ',';
+			}
+			rcommand = rcommand.slice(0, -1)+'),\n'+json[0][1]+'=c(';
+			for (var i=1; i<json.length; i++) {
+				rcommand += json[i][1].replace(/\"/g,'') + ',';
+			}
+			rcommand = rcommand.slice(0, -1)+'))\n';
+			
+			rcommand += 'my_comp <- combn(levels(factor( datasheet$'+json[0][0]+')), 2,  simplify = FALSE)\n';
+			rcommand += 'ggboxplot(datasheet, x = "'+json[0][0]+'", y = "'+json[0][1]+'",\n'+
+			'  color = "'+json[0][0]+'", palette = "jco")+\n'+
+			'  stat_compare_means(comparisons = my_comp)+\n'+
+			'  stat_compare_means(label.y = 50)\n';
+			
+			console.log(rcommand);
+			editor.getSession().setValue(rcommand);
+		}
+
+	    DropSheet({
+	        file: _file,
+	        drop: _target,
+	        on: {
+	            workstart: _workstart,
+	            workend: _workend,
+	            sheet: _onsheet,
+	            foo: 'bar'
+	        },
+	        errors: {
+	            badfile: _badfile,
+	            pending: _pending,
+	            failed: _failed,
+	            large: _large,
+	            foo: 'bar'
+	        }
+	    })
+	});
+</script>
+</head>
+
+<body>
+	<table width=100% border=0>
+	<tr>
+	<td width=60%><div id="drop" style="width:100%;">Drop a file here or <input type="file" id="file" value=""/></div></td>
+	<td>
+	<td>&nbsp;<button class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
+	<td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
+	</tr>
+	</table>
+	
+	<div class="panel-container">
+		<div id=coding class="panel-left"> </div>
+		
+		<div class="splitter"> </div>
+		
+		<div class="panel-right">
+		<iframe id=result width=100% height=100% name=result src=""></iframe>
+		</div>
+	</div>
+	
+	<script>
+		$(".panel-left").resizable({
+			handleSelector: ".splitter",
+			resizeHeight:  false,
+			onDragEnd: function( event, ui ) {editor.resize();}
+		});
+	</script>
+</body>
+</html>

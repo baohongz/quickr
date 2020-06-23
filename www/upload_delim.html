@@ -1,0 +1,85 @@
+<html>
+<head>
+<title>Uploading a CSV File</title>
+    
+<script src="jquery-1.10.2.min.js"></script>
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+</head>
+
+<script>
+$(function(){
+
+	
+	//actual handler
+	$("#submitbutton").on("click", function(){
+	
+	    //arguments
+	    var myheader = $("#header").val() == "true";
+	    var myfile = $("#csvfile")[0].files[0];
+	        
+	    if(!myfile){
+	        alert("No file selected.");
+	        return;
+	    }
+	
+	    //disable the button during upload
+	    $("#submitbutton").attr("disabled", "disabled");
+	
+	    //perform the request
+	    var req = ocpu.call("read.delim", {
+	        "file" : myfile,
+	        "header" : myheader
+	    }, function(session){
+console.log(session);
+	        session.getConsole(function(outtxt){
+	            $("#output").text(outtxt); 
+	        });
+// printsummary(session);
+	    });
+	        
+	    //if R returns an error, alert the error message
+	    req.fail(function(){
+	        alert("Server error: " + req.responseText);
+	    });
+	    
+	    //after request complete, re-enable the button 
+	    req.always(function(){
+	        $("#submitbutton").removeAttr("disabled")
+	    });        
+	});    
+
+	function printsummary(ses){
+	  //perform the request
+	  ocpu.seturl("https://opencpu.bxgenomics.com/ocpu/library/base/R");
+	  var req = ocpu.call("summary", {
+	    object : ses
+	  }, function(session){
+		session.getConsole(function(outtxt){
+           $("#output").text(outtxt);
+        });
+	  }).fail(function(){
+	    alert("Server error: " + req.responseText);
+	  });        
+	}
+})
+
+</script>
+
+<h1>Uploading a CSV File</h1>
+
+<b>CSV File</b> <input type="file" id="csvfile"> 
+<br/>
+
+<b>Header</b> <select id="header">
+<option>true</option>
+<option>false</option>
+</select> 
+
+<br/>
+<button id="submitbutton" type="button">read.csv</button>
+
+<pre><code id="output"></code></pre>
+
+</body>
+</html>

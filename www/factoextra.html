@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>factoextra</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/loading-overlay.css">
+<style type="text/css" media="screen">
+	iframe { 
+	  z-index: 999999;
+	}
+</style>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+<script src='assets/js/loading-overlay.min.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+	var editor;
+	var resultHTML;
+	
+	function domarkdown(e){
+       	$('#resultdiv').loadingOverlay();
+		$('#runbtn').prop('disabled', true);
+
+		var req = ocpu.call("rmdtext", {
+			text : editor.getSession().getValue()
+		}, function(session){
+			console.log(session);
+			resultHTML = session.getFileURL("output.html");
+			$("iframe").attr('src', resultHTML);
+
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		}).fail(function(text){
+			alert("Error: " + req.responseText);
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		});
+	}
+	
+	$(function(){
+		editor = ace.edit("coding");
+		editor.setTheme("ace/theme/iplastic");
+		editor.getSession().setMode("ace/mode/r");
+		editor.getSession().setUseWrapMode(true);
+		editor.setFontSize("14px");
+	});
+</script>
+</head>
+
+<body>
+&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button>
+&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button>
+<div class="panel-container">
+	<div id=coding class="panel-left">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+## [Reference](http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/112-pca-principal-component-analysis-essentials){target="_blank"}
+***
+
+```{r, message=FALSE, fig.width=6, fig.height=6, dev='svg', class.source = 'fold-show'}
+library("FactoMineR")
+library("factoextra")
+```
+
+
+```{r, message=FALSE, fig.width=6, fig.height=6, dev='svg'}
+iris.pca <- PCA(iris[,-5], graph = FALSE)
+iris.pca
+
+xlabel <- paste("PC1(",round(get_eigenvalue(iris.pca)[,'variance.percent']['Dim.1'],digits=1),"%)",sep='')
+ylabel <- paste("PC2(",round(get_eigenvalue(iris.pca)[,'variance.percent']['Dim.2'],digits=1),"%)",sep='')
+
+p <-fviz_pca_biplot(iris.pca, 
+	# Individuals
+	geom.ind = "point",
+	fill.ind = iris$Species, col.ind = "black",
+	pointshape = 21, pointsize = 2,
+	palette = "jco",
+	addEllipses = TRUE,
+	# Variables
+	alpha.var ="contrib", col.var = "contrib",
+	gradient.cols = "RdYlBu",
+	legend.title = list(fill = "Species", color = "Contrib", alpha = "Contrib")
+)
+p <- p + xlab(xlabel) + ylab(ylabel)
+p
+
+p <- fviz_pca_biplot(iris.pca, 
+	# Fill individuals by groups
+	geom.ind = "point",
+	pointshape = 21,
+	pointsize = 2.5,
+	fill.ind = iris$Species,
+	col.ind = "black",
+	# Color variable by groups
+	col.var = factor(c("sepal", "sepal", "petal", "petal")),
+	
+	legend.title = list(fill = "Species", color = "Clusters"),
+	repel = TRUE        # Avoid label overplotting
+	)+
+	ggpubr::fill_palette("jco")+ # Indiviual fill color
+	ggpubr::color_palette("npg") # Variable colors
+
+# Remove strang "a" from legend
+p <- p + xlab(xlabel) + ylab(ylabel) + guides(colour = guide_legend(override.aes = list(alpha = 1, size = 1)))
+p
+```
+
+***
+
+
+```{r, message=FALSE, fig.width=6, fig.height=6, dev='svg'}
+data(decathlon2)
+decathlon2.active <- decathlon2[1:23, 1:10]
+
+res.pca <- PCA(decathlon2.active, graph = FALSE)
+p <- fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+p
+
+var <- get_pca_var(res.pca)
+p <- fviz_pca_var(res.pca, col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE)
+p
+
+set.seed(123)
+res.km <- kmeans(var$coord, centers = 3, nstart = 25)
+grp <- as.factor(res.km$cluster)
+
+# Color variables by groups
+p <- fviz_pca_var(res.pca, col.var = grp, palette = c("#0073C2FF", "#EFC000FF", "#868686FF"), legend.title = "Cluster")
+# Remove strang "a" from legend
+p <- p + guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))
+p
+
+res.pca <- PCA(decathlon2, ind.sup = 24:27, quanti.sup = 11:12, quali.sup = 13, graph=FALSE)
+
+p <- fviz_pca_var(res.pca)
+p
+
+p <- fviz_pca_ind(res.pca, col.ind.sup = "blue", repel = TRUE)
+p <- fviz_add(p, res.pca$quali.sup$coord, color = "red")
+p
+
+p <- fviz_pca_ind(res.pca, habillage = 13, addEllipses =TRUE, ellipse.type = "confidence", palette = "jco", repel = TRUE) 
+# Remove strang "a" from legend
+p <- p + guides(color = guide_legend(override.aes = list(label="")))
+p
+
+sessionInfo()
+```
+
+
+	</div>
+	<div class="splitter"></div>
+	<div id="resultdiv" class="panel-right">
+		<iframe id=result width=100% height=100% Color=result src=""></iframe>
+	</div>
+</div>
+<script>
+	$(".panel-left").resizable({
+
+	   handleSelector: ".splitter",
+	   resizeHeight:  false,
+	   onDragEnd: function( event, ui ) {editor.resize();}
+	});
+</script>
+
+</body>
+</html>

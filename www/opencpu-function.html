@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Call R</title>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+</head>
+<body>
+<h1>Run Arbitrary Function</h1>
+
+<p>Use <tt>base::do.call</tt> to create and call an arbitrary function.<p>
+
+<textarea id="input" rows="4" cols="50">
+function(x, n){
+  return(x^n)   
+}
+</textarea> 
+
+<br /> <button id="submitbutton" type="button">Call R</button>
+
+<pre><code id="output"></code></pre>
+<script>
+//because identity is in base
+ocpu.seturl("https://bigdata.biogen.com/ocpu/library/base/R");
+
+//actual handler
+$("#submitbutton").on("click", function(){
+
+    //arguments
+    var mysnippet = new ocpu.Snippet($("#input").val());
+    
+    //disable button
+    $("button").attr("disabled", "disabled");
+
+    //perform the request
+    var req = ocpu.rpc("do.call", {
+        what : mysnippet,
+        args : {
+            x : [1,2,3,4,5],
+            n : 3
+        }
+    }, function(output){
+      $("#output").text(output); 
+    });
+        
+    //if R returns an error, alert the error message
+    req.fail(function(){
+        alert("Server error: " + req.responseText);
+    });      
+    
+    req.always(function(){
+        $("button").removeAttr("disabled");    
+    });
+});    
+</script>
+
+</body>
+</html>

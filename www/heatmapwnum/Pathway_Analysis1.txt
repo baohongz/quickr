@@ -1,0 +1,19 @@
+Placebo	22.5mg	75mg	225mg
+IL-8 Signaling	0	-2.24	-2.14	-2.89
+FcÎ³ Receptor-mediated Phagocytosis in Macrophages and Monocytes	0		-2.84	-2.33
+TNFR1 Signaling	0	0	-2.24	
+Calcium-induced T Lymphocyte Apoptosis	0	0	2	
+Interferon Signaling	0	0	-2.45	
+Toll-like Receptor Signaling	0		-2	
+p38 MAPK Signaling	0		-2.45	-2.45
+Actin Cytoskeleton Signaling	0		-1.81	-3.00
+Regulation of Actin-based Motility by Rho	0		-2.89	-1.34
+Cdc42 Signaling	0		-2.31	-1.89
+Signaling by Rho Family GTPases	0		-1.70	-2.33
+RhoA Signaling	0		-3.16	
+PAK Signaling	0		-0.38	-2
+HMGB1 Signaling	0		-1.13	-2.33
+Apoptosis Signaling	0	0	-2.24	-0.82
+Death Receptor Signaling	0		0	-2
+iNOS Signaling	0	0	-2	
+Ceramide Signaling	0			-2

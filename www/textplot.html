@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>colorspace</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/loading-overlay.css">
+<style type="text/css" media="screen">
+	iframe { 
+	  z-index: 999999;
+	}
+</style>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+<script src='assets/js/loading-overlay.min.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+	var editor;
+	var resultHTML;
+	
+	function domarkdown(e){
+       	$('#resultdiv').loadingOverlay();
+		$('#runbtn').prop('disabled', true);
+
+		var req = ocpu.call("rmdtext", {
+			text : editor.getSession().getValue()
+		}, function(session){
+			console.log(session);
+			resultHTML = session.getFileURL("output.html");
+			$("iframe").attr('src', resultHTML);
+
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		}).fail(function(text){
+			alert("Error: " + req.responseText);
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		});
+	}
+	
+	$(function(){
+		editor = ace.edit("coding");
+		editor.setTheme("ace/theme/iplastic");
+		editor.getSession().setMode("ace/mode/r");
+		editor.getSession().setUseWrapMode(true);
+		editor.setFontSize("14px");
+	});
+</script>
+</head>
+
+<body>
+&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button>
+&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button>
+<div class="panel-container">
+	<div id=coding class="panel-left">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r, message=FALSE, fig.width=12, fig.height=8, dev='svg', class.source = 'fold-show'}
+
+library(udpipe)
+library(textplot)
+library(ggraph)
+library(BTM)
+library(concaveman)
+library(data.table)
+library(glasso)
+library(qgraph)
+
+
+x <- udpipe("His speech about marshmallows in New York is utter bullshit",
+"english")
+plt <- textplot_dependencyparser(x, size = 4)
+plt
+
+library(BTM)
+library(ggraph)
+library(concaveman)
+data(example_btm, package = 'textplot')
+model <- example_btm
+plt <- plot(model, title = "BTM model", top_n = 5)
+plt
+
+
+plt <- plot(model, title = "Biterm topic model", subtitle = "Topics 2 to 8",
+which = 2:8, top_n = 7)
+plt
+
+
+data("brussels_reviews", package = "udpipe")
+anno <- subset(brussels_reviews, language %in% "nl")
+anno <- data.frame(doc_id = anno$id, text = anno$feedback, stringsAsFactors = FALSE)
+anno <- udpipe(anno, "dutch", trace = 10)
+## Get cooccurrences of nouns / adjectives and proper nouns
+biterms <- as.data.table(anno)
+biterms <- biterms[, cooccurrence(x = lemma,
+relevant = upos %in% c("NOUN", "PROPN", "ADJ"),
+skipgram = 2),
+by = list(doc_id)]
+## Build the BTM model
+set.seed(123456)
+x <- subset(anno, upos %in% c("NOUN", "PROPN", "ADJ"))
+x <- x[, c("doc_id", "lemma")]
+model <- BTM(x, k = 5, beta = 0.01, iter = 2000, background = TRUE,
+biterms = biterms, trace = 100)
+
+plt <- plot(model)
+plt
+
+
+data("brussels_reviews_anno", package = "udpipe")
+x <- subset(brussels_reviews_anno, xpos %in% "JJ")
+x <- sort(table(x$lemma))
+plt <- textplot_bar(x, top = 20,
+panel = "Adjectives", xlab = "Frequency",
+col.panel = "lightblue", cextext = 0.75,
+addpct = TRUE, cexpct = 0.5)
+plt
+
+dtm <- subset(anno, upos %in% "NOUN")
+dtm <- document_term_frequencies(dtm, document = "doc_id", term = "token")
+dtm <- document_term_matrix(dtm)
+dtm <- dtm_remove_lowfreq(dtm, minfreq = 20)
+dtm <- dtm_remove_tfidf(dtm, top = 100)
+term_correlations <- dtm_cor(dtm)
+textplot_correlation_glasso(term_correlations, exclude_zero = TRUE)
+
+
+sessionInfo()
+```
+
+
+	</div>
+	<div class="splitter"></div>
+	<div id="resultdiv" class="panel-right">
+		<iframe id=result width=100% height=100% Color=result src=""></iframe>
+	</div>
+</div>
+<script>
+	$(".panel-left").resizable({
+
+	   handleSelector: ".splitter",
+	   resizeHeight:  false,
+	   onDragEnd: function( event, ui ) {editor.resize();}
+	});
+</script>
+
+</body>
+</html>

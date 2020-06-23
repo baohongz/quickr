@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<style type="text/css" media="screen">
+ 
+iframe { 
+  z-index: 999999;
+}
+
+</style>
+<script src="underscore-min.js"></script>    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src='https://rawgit.com/RickStrahl/jquery-resizable/master/src/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+  var editor;
+  var resultHTML;
+
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+console.log(session);
+      resultHTML = session.getFileURL("output.html");
+	  $("iframe").attr('src', resultHTML);
+
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+$(function(){
+
+  editor = ace.edit("coding");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+//  editor.on("change", update);
+  
+  //init on start
+//  domarkdown();  
+
+
+});
+
+
+
+</script>
+
+
+</head>
+<body>
+
+<button onclick="domarkdown();">Run</button>
+<button onclick="winf=window.open(resultHTML); return false;">Print</button>
+
+<div class="panel-container">
+            <div id=coding class="panel-left">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, message=FALSE, fig.width=8, fig.height=4, dev='svg'}
+library(ggplot2)
+load(url("http://vulstats.ucsd.edu/data/cal1020.cleaned.Rdata"))
+
+plot1 <- ggplot(cal1020, aes(x=sex, fill=sex, y=speed.mph))+
+  stat_summary(fun.y = mean, 
+               geom="bar")+
+  stat_summary(fun.data = mean_se,
+               geom="errorbar", 
+               width=0.5)+
+  scale_y_continuous('Avg speed (mph; +/- s.e.m.)', breaks = seq(0, 15, by=1))+
+  ggtitle('Barplot')+
+  theme_minimal()+
+  coord_cartesian(ylim=c(5,7))+
+  theme(legend.position = 'none')
+
+plot2 <- ggplot(cal1020, aes(x=sex, color=sex, y=speed.mph))+
+  geom_jitter(size=0.1, alpha=0.5)+
+  scale_y_continuous('Speed (mph)', breaks = seq(0, 15, by=1))+
+  ggtitle('Jittered')+
+  theme_minimal()+
+  theme(legend.position = 'none')
+
+plot3 <- ggplot(cal1020, aes(x=sex, fill=sex, y=speed.mph))+
+  geom_violin()+
+  scale_y_continuous('Speed (mph)', breaks = seq(0, 15, by=1))+
+  ggtitle('Violin')+
+  theme_minimal()+
+  theme(legend.position = 'none')
+
+plot4 <- ggplot(cal1020, aes(x=sex, fill=sex, color=sex, y=speed.mph))+
+  geom_boxplot(alpha=0.5, outlier.alpha = 0.1)+
+  scale_y_continuous('Speed (mph)', breaks = seq(0, 15, by=1))+
+  ggtitle('Boxplot')+
+  theme_minimal()+
+  theme(legend.position = 'none')
+
+plot5 <- ggplot(cal1020, aes(x=speed.mph, fill=sex, color=sex))+
+  geom_density(alpha=0.5)+
+  coord_flip()+
+  scale_x_continuous('Speed (mph)', breaks = seq(0, 15, by=1))+
+  ggtitle('Densities')+
+  theme_minimal()+
+  theme(legend.position = 'none')
+
+plot6 <- ggplot(cal1020, aes(x=speed.mph, fill=sex, color=sex))+
+  stat_ecdf(geom='line', size=1, alpha=0.75)+
+  coord_flip()+
+  scale_x_continuous('Speed (mph)', breaks = seq(0, 15, by=1))+
+  scale_y_continuous('CDF', breaks=c(0, 0.5, 1.0))+
+  ggtitle('ECDF')+
+  theme_minimal()+
+  theme(legend.position = 'none')
+
+
+gridExtra::grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, nrow=1)
+
+```
+            </div>
+
+            <div class="splitter">
+            </div>
+
+            <div class="panel-right">
+<iframe id=result width=100% height=100% name=result src=""></iframe>
+            </div>
+</div>
+
+<script>
+$(".panel-left").resizable({
+   handleSelector: ".splitter",
+   resizeHeight:  false
+ });
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<style type="text/css" media="screen">
+ 
+iframe { 
+  z-index: 999999;
+}
+
+</style>
+<script src="underscore-min.js"></script>    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src='https://rawgit.com/RickStrahl/jquery-resizable/master/src/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+  var editor;
+  var resultHTML;
+
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+console.log(session);
+      resultHTML = session.getFileURL("output.html");
+	  $("iframe").attr('src', resultHTML);
+
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+$(function(){
+
+  editor = ace.edit("coding");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+//  editor.on("change", update);
+  
+  //init on start
+//  domarkdown();  
+
+
+});
+
+
+
+</script>
+
+
+</head>
+<body>
+
+<button onclick="domarkdown();">Run</button>
+<button onclick="winf=window.open(resultHTML); return false;">Print</button>
+
+<div class="panel-container">
+            <div id=coding class="panel-left">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r, results='asis'}
+library(summarytools)
+dfSummary(iris, plain.ascii = FALSE, style = "grid", tmp.img.dir = "/tmp", graph.magnif=0.8)
+```
+            </div>
+
+            <div class="splitter">
+            </div>
+
+            <div class="panel-right">
+<iframe id=result width=100% height=100% name=result src=""></iframe>
+            </div>
+</div>
+
+<script>
+$(".panel-left").resizable({
+   handleSelector: ".splitter",
+   resizeHeight:  false
+ });
+</script>
+
+
+</body>
+</html>

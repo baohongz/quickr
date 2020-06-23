@@ -1,0 +1,757 @@
+library(plyr)
+library(dplyr) 
+library(ade4)  #runs Mantel test
+library(data.table)
+library(reshape2)
+library(dendextend)
+library(magrittr)
+
+raw<- read.csv(gzfile("Biling_Master_4.0.csv.gz"), header=T)
+
+require(dendextend)
+par(mfrow = c(1,2))
+tan <- dendlist(en, sp)
+
+
+g = tanglegram(tan, highlight_branches_lwd=F, lwd = 1.0, type = "t", 
+           edge.lwd = 1, margin_inner= 5.7, main_left="english",
+           main_right='spanish', match_order_by_labels=T, 
+           common_subtrees_color_branches=T)
+
+
+png("biling-clustering.png", width=600, height=600, res=120)
+print(g)
+dev.off()
+ 
+pdf("biling-clustering.pdf", width = 8, height = 8, useDingbats=F)
+print(g)
+dev.off()
+
+
+
+#########################################################
+##BILINGUAL SPANISH DENDROGRAMS GROUP
+#counts missing values
+sum(is.na(raw))
+
+#List the column names and their respective numeric places
+colnames(raw)
+
+#isolate only the columns of interest- dimensions, condition, participant
+raw_2 <- raw %>% select(8,9, 21:26)
+
+#subsets rows corresponding to sp -- That's bilingual speakers
+#rating spanish words, then group by word and create a summary table of means
+bi_sp <- raw_2 %>%
+  filter(Tag=="sp") %>%
+  select(2:8) 
+
+#inspect the first 8 rows to make sure all is kosher 
+head(bi_sp, n=8)
+
+#Refactor "Stim" variable so it only has 80 levels not 320
+bi_sp$Stim <- factor(bi_sp$Stim)
+
+#Create a summary table of means, collapsed across participants
+#by word, ignore missing values
+bi_sp_means <- bi_sp %>%
+  group_by(Stim) %>%
+  summarise_each(funs(mean(., na.rm = TRUE))) %>%
+  as.data.frame()
+
+#coerce the first column (Word) into rownames of the dataframe
+#this will plot the names on the x-axis of the dendrogram
+bi2 <- bi_sp_means[,-1]
+rownames(bi2) <- bi_sp_means[,1] 
+
+#run elbow test to determine optimal clusters from k=2 to k=10
+#This one shows an elbow bend at N=3clusters
+k.max <- 10 # Maximal number of clusters 10
+data <- bi2
+wss <- sapply(1:k.max, 
+              function(k){kmeans(data, k, nstart=10 )$tot.withinss})
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Total within-clusters sum of squares")
+     abline(v = 3, lty =2)
+
+#create a distance matrix isolating only the numeric columns in the bi_sp_means dataframe; this doesn't cause NAs
+sp.dist <- dist(bi2)
+
+#run hierarchical cluster analysis on the distance matrix using complete linkage
+sp.clust <- hclust(sp.dist, method="complete")
+
+#view the margin parameters prior to plotting
+par()$mar
+
+#plot the dendrogram as triangle, no cuts
+tri.sp<- as.dendrogram(sp.clust)
+par(cex=0.5, col="red4", center = TRUE, mar=c(2, 4.5, 2, 8), col.lab = "black")
+tri.sp.plot <- plot(tri.sp, type="triangle", horiz=T);
+
+#plot the dendrogram as triangle but label leaves by color, cutree, 6 clusters
+dev.off
+tri.sp.k<- as.dendrogram(sp.clust)
+cutree(tri.sp.k, k=3)
+sp <- color_branches(tri.sp.k, k=3) %>%
+        color_labels(tri.sp.k, k=3)
+par(cex=0.5, mar=c(2, 4.5, 2, 8))
+sp.kplot <- plot(sp, type="triangle", horiz=T);
+
+
+###########################################################
+###########################################
+#Bilinguals rating words in English (.en)
+
+#subsets rows of dataframe raw_2 corresponding to Tag="en", bilingual speakers
+#rating English words, then group by word and create a summary table of means
+bi_en <- raw_2 %>%
+  filter(Tag=="en") %>%
+  select(2:8) 
+
+head(bi_en, n=6)
+#Refactor "Stim" column so it only has 80 levels 
+#rather than 320
+bi_en$Stim <- factor(bi_en$Stim)
+
+#Create a summary table of means, collapsed across participants
+#by word, ignore missing values
+bi_en_means <- bi_en %>%
+  group_by(Stim) %>%
+  summarise_each(funs(mean(., na.rm = TRUE)))%>%
+  as.data.frame()
+
+#coerce the first column (Word) into rownames of the dataframe
+#this will plot the names on the x-axis of the dendrogram
+bi_eng <- bi_en_means[,-1]
+rownames(bi_eng) <- bi_en_means[,1] 
+
+#create a distance matrix isolating only the numeric columns in the bi_sp_means dataframe; this doesn't cause NAs
+en.dist <- dist(bi_eng)
+
+#run hierarchical cluster analysis on the distance matrix using complete linkage method
+en.clust <- hclust(en.dist, method="complete")
+
+#run elbow test to determine optimal clusters from k=1 to k=10
+#This one shows an elbow bend at N=XXclusters
+k.max <- 8 # Maximal number of clusters 8
+data <- bi_eng
+wss <- sapply(1:k.max, 
+              function(k){kmeans(data, k, nstart=10 )$tot.withinss})
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="N-clusters (K)",
+     ylab="total within-clusters ss")
+      title("elbow plot k-means bilinguals.english")
+     abline(v = 3, lty =2)
+
+#plot the dendrogram as triangle
+tri.en<- as.dendrogram(en.clust)
+par(cex=0.5, center = TRUE, mar=c(2, 4.5, 2, 8), col.lab = "black")
+tri.sp.plot<- plot(tri.en, type="triangle", horiz=T);
+
+#plot the dendrogram as triangle but label leaves by color, cutree, 6 clusters
+dev.off
+tri.eng.k<- as.dendrogram(en.clust)
+cutree(tri.eng.k, k=3)
+en <- color_branches(tri.eng.k, k=3) %>%
+  color_labels(tri.eng.k, k=3)
+par(cex=0.5, mar=c(2, 4.5, 2, 8))
+eng.kplot <- plot(en, type="triangle", horiz=T);
+
+
+
+
+###################################################################
+###########################################
+#HCluster on monoloinguals rating words in English at time 1 .t1
+
+#subsets rows of dataframe raw_2 corresponding to Tag="t1", bilingual speakers
+#rating English words, then group by word and create a summary table of means
+mon_t1 <- raw_2 %>%
+  filter(Tag=="t1") %>%
+  select(2:8) 
+
+#Refactor "Stim" variable so it only has 80 levels not 320
+mon_t1$Stim <- factor(mon_t1$Stim)
+
+#Create a summary table of means, collapsed across participants
+#by word, ignore missing values
+mon_t1_means <- mon_t1 %>%
+  group_by(Stim) %>%
+  summarise_each(funs(mean(., na.rm = TRUE))) %>%
+  as.data.frame()
+
+#coerce the first column (Stim) into rownames of the dataframe
+#this will plot the names on the x-axis of the dendrogram
+t1_4dist <- mon_t1_means[,-1]
+rownames(t1_4dist) <- mon_t1_means[,1] 
+
+#create a distance matrix isolating only the numeric columns in the bi_sp_means dataframe; this doesn't cause NAs
+t1.dist <- dist(t1_4dist)
+
+#run hierarchical cluster analysis on the distance matrix using Ward's method
+t1.clust <- hclust(t1.dist, method="complete")
+
+#run elbow test to determine optimal clusters from k=1 to k=10
+#This one shows an elbow bend at N=XXclusters
+k.max <- 8 # Maximal number of clusters 8
+data <- t1_4dist
+wss <- sapply(1:k.max, 
+              function(k){kmeans(data, k, nstart=10 )$tot.withinss})
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="N-clusters (K)",
+     ylab="total within-clusters ss")
+      title("elbow plot k-means english.t1")
+      abline(v = 3, lty =2)
+
+#plot the dendrogram as triangle
+dev.off()
+tri.t1<- as.dendrogram(t1.clust)
+par(cex=0.5, center = TRUE, mar=c(2, 4.5, 2, 8))
+t1.tri.plot<- plot(tri.t1, type="triangle", horiz=T)
+
+
+
+##################################################################
+#HCluster monoloinguals rating words in English at time 2 .t2
+
+#subsets rows of dataframe raw_2 corresponding to Tag="t2", bilingual speakers
+#rating English words, then group by word and create a summary table of means
+mon_t2 <- raw_2 %>%
+  filter(Tag=="t2") %>%
+  select(2:8) 
+
+#we need to refactor the "Word" variable so it only has 80 levels 
+#rather than 320
+mon_t2$Stim <- factor(mon_t2$Stim)
+
+#Create a summary table of means, collapsed across participants
+#by word, ignore missing values
+mon_t2_means <- mon_t2 %>%
+  group_by(Stim) %>%
+  summarise_each(funs(mean(., na.rm = TRUE))) %>%
+  as.data.frame()
+
+#coerce the first column (Stim) into rownames of the dataframe
+#this will plot the names on the x-axis of the dendrogram
+t2_4dist <- mon_t2_means[,-1]
+rownames(t2_4dist) <- mon_t2_means[,1] 
+
+#create a distance matrix isolating only the numeric columns in the bi_sp_means dataframe; this doesn't cause NAs
+t2.dist <- dist(t2_4dist)
+
+#run hierarchical cluster analysis on the distance matrix using Ward's method
+t2.clust <- hclust(t2.dist, method="complete")
+
+#run elbow test to determine optimal clusters from k=1 to k=10
+#This one shows an elbow bend at N=XXclusters
+k.max <- 8 # Maximal number of clusters 8
+data <- t2_4dist
+wss <- sapply(1:k.max, 
+              function(k){kmeans(data, k, nstart=10 )$tot.withinss})
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="N-clusters (K)",
+     ylab="total within-clusters ss")
+    title("elbow plot k-means english.t2")
+    abline(v = 3, lty =2)
+
+#view the margin parameters prior to plotting
+par()$mar
+
+#plot the dendrogram as triangle
+tri.t2<- as.dendrogram(t2.clust)
+par(cex=0.5, center = TRUE, mar=c(2, 4.5, 2, 8))
+t2.tri.plot <- plot(tri.t2, type="triangle", horiz=T);
+
+#####################################################
+#Group Mantel test Bilinguals En to Sp, Run on the distance matrices
+#sp.dist to en.dist, runs test on the two distance matrices with 1000 permutations 
+mantel.rtest(sp.dist, en.dist, nrepet = 1000)
+
+#Group mantel test monolinguals En to Sp, Run on the distance matrices
+#sp.dist to en.dist
+mantel.rtest(t1.dist, t2.dist, nrepet = 1000)
+
+
+#####################################################
+#####################################################
+#BIG MATRIX OF SPEARMAN & MANTEL FOR EACH BILINGUAL SP:Eng on Each Dimension
+#Prep for individual differences proficiency in bilinguals only
+#Isolate each person, then contrast items mantel (all) spearman individual variables eng to sp
+bisubs<- read.csv("BilingSubjectsOnly_3.0.csv", header=T)
+
+bifocal <- bisubs %>%
+  select(1,3,4,5:10)
+
+bilong<- bifocal %>%
+  melt(id.vars=c(1:3))
+
+#dcast to wide format, order matters, the first variable (Participant) varies 
+#slowest, and the last (English) fastest
+biwide <- bilong %>%
+  dcast(Participant + English  ~ Tag + variable)
+
+#creates a new dataframe of spearman correlation coefficients for
+#each participant spanish:english on each dimension. Then bind them into single df
+cor.color <- biwide %>%  
+  group_by(Participant) %>% 
+  summarise(color=cor(en_Color, sp_Color, method="spearman")) %>%
+  as.data.frame()
+
+cor.sound <- biwide %>%  
+  group_by(Participant) %>% 
+  summarise(sound=cor(en_Sound, sp_Sound, method="spearman")) %>%
+  as.data.frame()
+
+cor.morality <- biwide %>%  
+  group_by(Participant) %>% 
+  summarise(morality=cor(en_Morality, sp_Morality, method="spearman")) %>%
+  as.data.frame()
+
+cor.polarity <- biwide %>%  
+  group_by(Participant) %>% 
+  summarise(polar=cor(en_Polarity, sp_Polarity, method="spearman")) %>%
+  as.data.frame()
+
+cor.size <- biwide %>%  
+  group_by(Participant) %>% 
+  summarise(size=cor(en_Size, sp_Size, method="spearman")) %>%
+  as.data.frame()
+  print(cor_size)
+
+cor.space <- biwide %>%  
+  group_by(Participant) %>% 
+  summarise(space=cor(en_Space, sp_Space, method="spearman")) %>%
+as.data.frame()
+
+#merge the individual spearman correlations between spanish and Engish
+#for each dimension and for each subject
+#merge dataframes iteratively: color-sound, then color-sound-polarity, etc.
+it1 <- merge(cor.color, cor.sound, by.y="Participant")
+it2 <-  merge(it1, cor.morality, by.y="Participant")
+it3 <- merge(it2, cor.polarity, by.y="Participant")
+it3 <- merge(it3, cor.size, by.y="Participant")
+Corr.All.Subs <- merge(it3, cor.space, by.y="Participant")
+
+#exports this big correlation table to a CSV file
+write.table(Corr.All.Subs, file = "CorrAll.csv")
+            
+#correlation matrix isolating only the numeric variables in biwide
+bi4corr <- biwide %>%
+  select(-1,-2)
+
+cor.matrix.all<-cor(bi4corr, use="complete.obs", method="spearman") 
+
+#######
+#Computing Mantel Statistics for Individual Subjects
+#filter rows for participant 1, english only, get rid of all columns except numeric vectors
+eng.sp01 <- bisubs %>%
+      filter(Participant=="Span_01", Tag=="en") %>%
+      select(5:10)
+     
+sp1.eng.dist <- dist(eng.sp01)
+
+#isolate s01 spanish only and create distance matrix
+sp.sp01 <- bisubs %>%
+  filter(Participant=="Span_01", Tag=="sp") %>%
+  select(5:10)
+
+sp1.spa.dist <- dist(sp.sp01)
+
+#Mantel test on S01 spanish to english global distance matrices
+m1<- mantel.rtest(sp1.spa.dist, sp1.eng.dist, nrepet = 1000);
+
+######SP_03
+eng.sp03 <- bisubs %>%
+  filter(Participant=="Span_03", Tag=="en") %>%
+  select(5:10)
+
+sp3.eng.dist <- dist(eng.sp03)
+
+#isolate s03 spanish only and create distance matrix
+sp.sp03 <- bisubs %>%
+  filter(Participant=="Span_03", Tag=="sp") %>%
+  select(5:10)
+
+sp3.spa.dist <- dist(sp.sp03)
+
+#Mantel test on S03 spanish to english global distance matrices
+m3<-mantel.rtest(sp3.spa.dist, sp3.eng.dist, nrepet = 1000)
+
+print(m3)
+  
+########SP_04
+print(m4)
+
+#########SP05
+eng.sp05 <- bisubs %>%
+  filter(Participant=="Span_05", Tag=="en") %>%
+  select(5:10)
+
+sp5.eng.dist <- dist(eng.sp05)
+
+#isolate s05 spanish only and create distance matrix
+sp.sp05 <- bisubs %>%
+  filter(Participant=="Span_05", Tag=="sp") %>%
+  select(5:10)
+
+sp5.spa.dist <- dist(sp.sp05)
+
+#Mantel test on S05 spanish to english global distance matrices
+m5<-mantel.rtest(sp5.spa.dist, sp5.eng.dist, nrepet = 1000)
+
+print(m5)
+##################################################
+#########SP07
+eng.sp07 <- bisubs %>%
+  filter(Participant=="Span_07", Tag=="en") %>%
+  select(5:10)
+
+sp7.eng.dist <- dist(eng.sp07)
+
+#isolate s03 spanish only and create distance matrix
+sp.sp07 <- bisubs %>%
+  filter(Participant=="Span_07", Tag=="sp") %>%
+  select(5:10)
+
+sp7.spa.dist <- dist(sp.sp07)
+
+#Mantel test on S07 spanish to english global distance matrices
+m7<-mantel.rtest(sp7.spa.dist, sp7.eng.dist, nrepet = 1000)
+
+print(m7)
+
+##################################################
+#########SP08
+eng.sp08 <- bisubs %>%
+  filter(Participant=="Span_08", Tag=="en") %>%
+  select(5:10)
+
+sp8.eng.dist <- dist(eng.sp08)
+
+#isolate s08 spanish only and create distance matrix
+sp.sp08 <- bisubs %>%
+  filter(Participant=="Span_08", Tag=="sp") %>%
+  select(5:10)
+
+sp8.spa.dist <- dist(sp.sp08)
+
+#Mantel test on S08 spanish to english global distance matrices
+m8<-mantel.rtest(sp8.spa.dist, sp8.eng.dist, nrepet = 1000)
+
+print(m8)
+
+##################################################
+#########SP09
+eng.sp09 <- bisubs %>%
+  filter(Participant=="Span_09", Tag=="en") %>%
+  select(5:10)
+
+sp9.eng.dist <- dist(eng.sp09)
+
+#isolate s09 spanish only and create distance matrix
+sp.sp09 <- bisubs %>%
+  filter(Participant=="Span_09", Tag=="sp") %>%
+  select(5:10)
+
+sp9.spa.dist <- dist(sp.sp09)
+
+#Mantel test on S09 spanish to english global distance matrices
+m9<-mantel.rtest(sp9.spa.dist, sp9.eng.dist, nrepet = 1000)
+
+print(m9)
+##################################################
+#########SP10
+eng.sp10 <- bisubs %>%
+  filter(Participant=="Span_10", Tag=="en") %>%
+  select(5:10)
+
+sp10.eng.dist <- dist(eng.sp10)
+
+#isolate s10 spanish only and create distance matrix
+sp.sp10 <- bisubs %>%
+  filter(Participant=="Span_10", Tag=="sp") %>%
+  select(5:10)
+
+sp10.spa.dist <- dist(sp.sp10)
+
+#Mantel test on S10 spanish to english global distance matrices
+m10<- mantel.rtest(sp10.spa.dist, sp10.eng.dist, nrepet = 1000)
+
+print(m10)
+##################################################
+#########SP11
+eng.sp11 <- bisubs %>%
+  filter(Participant=="Span_11", Tag=="en") %>%
+  select(5:10)
+
+sp11.eng.dist <- dist(eng.sp11)
+
+#isolate s11 spanish only and create distance matrix
+sp.sp11 <- bisubs %>%
+  filter(Participant=="Span_11", Tag=="sp") %>%
+  select(5:10)
+
+sp11.spa.dist <- dist(sp.sp11)
+
+#Mantel test on S11 spanish to english global distance matrices
+m11<- mantel.rtest(sp11.spa.dist, sp11.eng.dist, nrepet = 1000)
+print(m11)
+##################################################
+#########SP12
+eng.sp12 <- bisubs %>%
+  filter(Participant=="Span_12", Tag=="en") %>%
+  select(5:10)
+
+sp12.eng.dist <- dist(eng.sp12)
+
+#isolate s12 spanish only and create distance matrix
+sp.sp12 <- bisubs %>%
+  filter(Participant=="Span_12", Tag=="sp") %>%
+  select(5:10)
+
+sp12.spa.dist <- dist(sp.sp12)
+
+#Mantel test on S12 spanish to english global distance matrices
+m12<-mantel.rtest(sp12.spa.dist, sp12.eng.dist, nrepet = 1000)
+print(m12)
+##################################################
+#########SP13
+eng.sp13 <- bisubs %>%
+  filter(Participant=="Span_13", Tag=="en") %>%
+  select(5:10)
+
+sp13.eng.dist <- dist(eng.sp13)
+
+#isolate s13 spanish only and create distance matrix
+sp.sp13 <- bisubs %>%
+  filter(Participant=="Span_13", Tag=="sp") %>%
+  select(5:10)
+
+sp13.spa.dist <- dist(sp.sp13)
+
+#Mantel test on S13 spanish to english global distance matrices
+m13<-mantel.rtest(sp13.spa.dist, sp13.eng.dist, nrepet = 1000)
+print(m13)
+
+##################################################
+#########SP14
+eng.sp14 <- bisubs %>%
+  filter(Participant=="Span_14", Tag=="en") %>%
+  select(5:10)
+
+sp14.eng.dist <- dist(eng.sp14)
+
+#isolate s14 spanish only and create distance matrix
+sp.sp14 <- bisubs %>%
+  filter(Participant=="Span_14", Tag=="sp") %>%
+  select(5:10)
+
+sp14.spa.dist <- dist(sp.sp14)
+
+#Mantel test on S14 spanish to english global distance matrices
+m14<-mantel.rtest(sp14.spa.dist, sp14.eng.dist, nrepet = 1000)
+print(m14)
+##################################################
+#########SP15
+eng.sp15 <- bisubs %>%
+  filter(Participant=="Span_15", Tag=="en") %>%
+  select(5:10)
+
+sp15.eng.dist <- dist(eng.sp15)
+
+#isolate s15 spanish only and create distance matrix
+sp.sp15 <- bisubs %>%
+  filter(Participant=="Span_15", Tag=="sp") %>%
+  select(5:10)
+
+sp15.spa.dist <- dist(sp.sp15)
+
+#Mantel test on S03 spanish to english global distance matrices
+m15<- mantel.rtest(sp15.spa.dist, sp15.eng.dist, nrepet = 1000)
+print(m15)
+
+##################################################
+#########SP16
+eng.sp16 <- bisubs %>%
+  filter(Participant=="Span_16", Tag=="en") %>%
+  select(5:10)
+
+sp16.eng.dist <- dist(eng.sp16)
+
+#isolate s16 spanish only and create distance matrix
+sp.sp16 <- bisubs %>%
+  filter(Participant=="Span_16", Tag=="sp") %>%
+  select(5:10)
+
+sp16.spa.dist <- dist(sp.sp16)
+
+#Mantel test on S16 spanish to english global distance matrices
+m16<- mantel.rtest(sp16.spa.dist, sp16.eng.dist, nrepet = 1000)
+print(m16)
+
+
+
+##################################################
+#########SP17
+eng.sp17 <- bisubs %>%
+  filter(Participant=="Span_17", Tag=="en") %>%
+  select(5:10)
+
+sp17.eng.dist <- dist(eng.sp17)
+
+#isolate s17 spanish only and create distance matrix
+sp.sp17 <- bisubs %>%
+  filter(Participant=="Span_17", Tag=="sp") %>%
+  select(5:10)
+
+sp17.spa.dist <- dist(sp.sp17)
+
+#Mantel test on S17 spanish to english global distance matrices
+m17<-mantel.rtest(sp17.spa.dist, sp17.eng.dist, nrepet = 1000)
+
+print(m17)
+##################################################
+#########SP19
+eng.sp19 <- bisubs %>%
+  filter(Participant=="Span_19", Tag=="en") %>%
+  select(5:10)
+
+sp19.eng.dist <- dist(eng.sp19)
+
+#isolate s19 spanish only and create distance matrix
+sp.sp19 <- bisubs %>%
+  filter(Participant=="Span_19", Tag=="sp") %>%
+  select(5:10)
+
+sp19.spa.dist <- dist(sp.sp19)
+
+#Mantel test on S19 spanish to english global distance matrices
+m19<-mantel.rtest(sp19.spa.dist, sp19.eng.dist, nrepet = 1000)
+print(m19)
+
+##################################################
+#########SP21
+eng.sp21 <- bisubs %>%
+  filter(Participant=="Span_21", Tag=="en") %>%
+  select(5:10)
+
+sp21.eng.dist <- dist(eng.sp21)
+
+#isolate s21 spanish only and create distance matrix
+sp.sp21 <- bisubs %>%
+  filter(Participant=="Span_21", Tag=="sp") %>%
+  select(5:10)
+
+sp21.spa.dist <- dist(sp.sp21)
+
+#Mantel test on S21 spanish to english global distance matrices
+m21<- mantel.rtest(sp21.spa.dist, sp21.eng.dist, nrepet = 1000)
+print(m21)
+##################################################
+#########SP22
+eng.sp22 <- bisubs %>%
+  filter(Participant=="Span_22", Tag=="en") %>%
+  select(5:10)
+
+sp22.eng.dist <- dist(eng.sp22)
+
+#isolate s22 spanish only and create distance matrix
+sp.sp22 <- bisubs %>%
+  filter(Participant=="Span_22", Tag=="sp") %>%
+  select(5:10)
+
+sp22.spa.dist <- dist(sp.sp22)
+
+#Mantel test on S22 spanish to english global distance matrices
+m22<- mantel.rtest(sp22.spa.dist, sp22.eng.dist, nrepet = 1000)
+print(m22)
+
+##################################################
+#########SP23
+eng.sp23 <- bisubs %>%
+  filter(Participant=="Span_23", Tag=="en") %>%
+  select(5:10)
+
+sp23.eng.dist <- dist(eng.sp23)
+
+#isolate s23 spanish only and create distance matrix
+sp.sp23 <- bisubs %>%
+  filter(Participant=="Span_23", Tag=="sp") %>%
+  select(5:10)
+
+sp23.spa.dist <- dist(sp.sp23)
+
+#Mantel test on S23 spanish to english global distance matrices
+m23<- mantel.rtest(sp23.spa.dist, sp23.eng.dist, nrepet = 1000)
+print(m23)
+
+##################################################
+#########SP24
+eng.sp24 <- bisubs %>%
+  filter(Participant=="Span_24", Tag=="en") %>%
+  select(5:10)
+
+sp24.eng.dist <- dist(eng.sp24)
+
+#isolate s24 spanish only and create distance matrix
+sp.sp24 <- bisubs %>%
+  filter(Participant=="Span_24", Tag=="sp") %>%
+  select(5:10)
+
+sp24.spa.dist <- dist(sp.sp24)
+
+#Mantel test on S21 spanish to english global distance matrices
+m24<- mantel.rtest(sp24.spa.dist, sp24.eng.dist, nrepet = 1000)
+print(m24)
+
+#########################################################
+#deriving correlations when the data are in long form
+dt01 <-data.table(sp_01)
+setkey(dt01, Tag)
+cor(dt01["en"]$Color, dt01["sp"]$Color, method="spearman")
+
+###########################################
+#Facet wrap correlations of proficiency with Spanish-English
+#matrix similarity: prediction that less proficient, the closer
+#the semantic distance matrices will be
+
+prof <- read.csv("Proficiency_Master_3.0.csv", header=T)
+colnames(prof)
+
+#Pearson correlation between color and proficiency (BNTdiff)
+
+
+dev.off()
+
+plot(prof$diff, prof$sound)
+abline(v=18)
+
+plot(prof$diff, prof$color)
+abline(v=18)
+
+plot(prof$diff, prof$morality)
+abline(v=18)
+
+plot(prof$diff, prof$size)
+abline(v=18)
+
+plot(prof$diff, prof$MANTEL)
+abline(v=18)
+
+plot(prof$BLP_Eng.Span, prof$MANTEL)
+abline(v=16)
+
+plot(prof$diff, prof$BLP_Eng.Span)
+abline(v=18)
+
+plot(prof$diff, prof$av.spear)
+abline(v=18)
+
+str(prof)
+prof$med.split <- as.factor(prof$med.split)
+t.test(mantel~med.split, prof)

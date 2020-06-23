@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+    
+<script src="underscore-min.js"></script>    
+<script src="jquery-1.10.2.min.js"></script>
+<script src="opencpu-0.5.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+$(function(){
+  ocpu.seturl("https://opencpu.bxgenomics.com/ocpu/library/markdowngui/R");
+  var editor = ace.edit("editor");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.setFontSize("14px");
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+      $("iframe").attr('src', session.getFileURL("output.html"));     
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+  editor.on("change", update);
+  
+  //init on start
+  domarkdown();  
+});
+</script>
+
+<style type="text/css" media="screen">
+ 
+#editor { 
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+}
+
+iframe { 
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 604px;
+  height: 100%;
+  border: 0;
+  margin: 0;
+  z-index: 999999;
+}
+
+</style>
+</head>
+<body>
+
+
+<div id="editor">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, message=FALSE, fig.width=8, fig.height=5, dev='svg'}
+library(ggplot2)
+data=data.frame(group=c("A ","B ","C ","D ") , value=c(33,62,56,67) )
+ 
+
+ggplot(data, aes(x = group, y = value ,fill = group )) + 
+    geom_bar(width = 0.85, stat="identity")
+    
+ggplot(data, aes(x = group, y = value ,fill = group)) + 
+    geom_bar(width = 0.85, stat="identity") +    
+    
+    # To use a polar plot and not a basic barplot
+    coord_polar(theta = "y") +    
+    
+    #Remove useless labels of axis
+    xlab("") + ylab("") +
+    
+    #Increase ylim to avoid having a complete circle
+    ylim(c(0,75)) + 
+    
+    #Add group labels close to the bars :
+    geom_text(data = data, hjust = 1, size = 3, aes(x = group, y = 0, label = group)) +
+    
+    #Remove useless legend, y axis ticks and y axis text
+    theme(legend.position = "none" , axis.text.y = element_blank() , axis.ticks = element_blank())
+ 
+library(ggbiplot)
+data(wine)
+wine.pca <- prcomp(wine, scale. = TRUE)
+ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
+  groups = wine.class, ellipse = TRUE, circle = TRUE) +
+  scale_color_discrete(name = '') +
+  theme(legend.direction = 'horizontal', legend.position = 'top')
+   
+
+library(ggrepel)
+
+cats <- c("cat1", "cat2", "cat3", "cat4", "cat5", "cat6", "cat7", "cat8", "cat9", "cat10", "cat11")
+freq <- c(101, 68, 34, 18, 14, 5, 5, 3, 2, 1, 1)
+
+## create data frame
+colour.df <- data.frame(cats, freq)
+
+## calculate percentage 
+colour.df$percentage = colour.df$freq / sum(colour.df$freq)* 100
+colour.df = colour.df[rev(order(colour.df$percentage)), ]
+colour.df$ymax = cumsum(colour.df$percentage)
+colour.df$ymin = c(0, head(colour.df$ymax, n = -1))
+
+donut = ggplot(colour.df, aes(fill = cats, ymax = ymax, ymin = ymin, xmax = 100, xmin = 80)) +
+    geom_rect(colour = "black") + coord_polar(theta = "y") + xlim(c(0, 100)) +
+    geom_label_repel(aes(label = paste(round(percentage,2),"%"), x = 100, y = (ymin + ymax)/2),inherit.aes = F, show.legend = F, size = 4) +
+    theme(legend.title = element_text(colour = "black", size = 12, face = "bold"), legend.text = element_text(colour = "black", size = 10), panel.grid = element_blank(), axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank()) +
+    annotate("text", x = 0, y = 0, size = 12, label = "Micro")
+print(donut)
+
+</div>
+
+<iframe src="about:blank"></iframe>
+
+</body>
+</html>

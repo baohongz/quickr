@@ -1,0 +1,21 @@
+GeneClass
+Gene1	Path1
+Gene2	Path1
+Gene3	Path1
+Gene4	Path1
+Gene5	Path1
+Gene6	Path1
+Gene7	Path1
+Gene8	Path1
+Gene9	Path1
+Gene10	Path1
+Gene11	Path2
+Gene12	Path2
+Gene13	Path2
+Gene14	Path2
+Gene15	Path3
+Gene16	Path3
+Gene17	Path3
+Gene18	Path3
+Gene19	Path3
+Gene20	Path3

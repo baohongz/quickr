@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>colorspace</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/loading-overlay.css">
+<style type="text/css" media="screen">
+	iframe { 
+	  z-index: 999999;
+	}
+</style>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+<script src='assets/js/loading-overlay.min.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+	var editor;
+	var resultHTML;
+	
+	function domarkdown(e){
+       	$('#resultdiv').loadingOverlay();
+		$('#runbtn').prop('disabled', true);
+
+		var req = ocpu.call("rmdtext", {
+			text : editor.getSession().getValue()
+		}, function(session){
+			console.log(session);
+			resultHTML = session.getFileURL("output.html");
+			$("iframe").attr('src', resultHTML);
+
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		}).fail(function(text){
+			alert("Error: " + req.responseText);
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		});
+	}
+	
+	$(function(){
+		editor = ace.edit("coding");
+		editor.setTheme("ace/theme/iplastic");
+		editor.getSession().setMode("ace/mode/r");
+		editor.getSession().setUseWrapMode(true);
+		editor.setFontSize("14px");
+	});
+</script>
+</head>
+
+<body>
+&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button>
+&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button>
+<div class="panel-container">
+	<div id=coding class="panel-left">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r, message=FALSE, fig.width=12, fig.height=8, dev='svg', class.source = 'fold-show'}
+library("colorspace")
+library(RColorBrewer)
+library(ggplot2)
+```
+
+```{r, message=FALSE, fig.width=12, fig.height=8, dev='svg'}
+hcl_palettes(plot = TRUE)
+
+display.brewer.all()
+
+df <- iris[1:18, ]
+df$number <- 1:nrow(df)
+
+# Define the number of colors you want
+
+mycolors <- colorRampPalette(brewer.pal(12, "Paired"))(18)
+
+# Create a ggplot with 18 colors 
+# Use scale_fill_manual
+
+df$Color = mycolors
+p0 <- ggplot(df, aes(Color, number))
+p <- p0 + geom_col(aes(fill = factor(number))) + scale_fill_manual(values = mycolors)
+p <- p + theme(axis.text.x = element_text(angle = 30, hjust = 1)) + guides(fill=guide_legend(title="ID"))
+p
+
+df <- iris[1:14, ]
+df$number <- 1:nrow(df)
+
+mycolors <- c("#F0188E","#98DEF6","#D2C3DD","#00AA9E","#6A7B9F","#DD7931","#B24E9B","#004A7B","#BCD556","#512C83","#00944C","#00AFEA","#FAB46F","#999999")
+
+df$Color = mycolors
+p0 <- ggplot(df, aes(Color, number))
+p <- p0 + geom_col(aes(fill = factor(number))) + scale_fill_manual(values = mycolors)
+p <- p + theme(axis.text.x = element_text(angle = 30, hjust = 1)) + guides(fill=guide_legend(title="ID"))
+p
+
+sessionInfo()
+```
+
+
+	</div>
+	<div class="splitter"></div>
+	<div id="resultdiv" class="panel-right">
+		<iframe id=result width=100% height=100% Color=result src=""></iframe>
+	</div>
+</div>
+<script>
+	$(".panel-left").resizable({
+
+	   handleSelector: ".splitter",
+	   resizeHeight:  false,
+	   onDragEnd: function( event, ui ) {editor.resize();}
+	});
+</script>
+
+</body>
+</html>

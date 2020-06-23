@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+    
+<script src="underscore-min.js"></script>    
+<script src="jquery-1.10.2.min.js"></script>
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+$(function(){
+  var editor = ace.edit("editor");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+console.log(session);
+console.log(session.getFileURL("output.html"));
+      $("iframe").attr('src', session.getFileURL("output.html"));     
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+  editor.on("change", update);
+  
+  //init on start
+  domarkdown();  
+});
+</script>
+
+<style type="text/css" media="screen">
+ 
+#editor { 
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 40%;
+  height: 100%;
+}
+
+iframe { 
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 60%;
+  height: 100%;
+  border: 0;
+  margin: 0;
+  z-index: 999999;
+}
+
+</style>
+</head>
+<body>
+
+
+<div id="editor">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, message=FALSE, fig.width=8, fig.height=5, dev='svg'}
+library(scater)
+data("sc_example_counts")
+data("sc_example_cell_info")
+example_sce <- SingleCellExperiment(
+assays = list(counts = sc_example_counts),
+colData = sc_example_cell_info
+)
+example_sce <- normalize(example_sce)
+
+plotExpression(example_sce, rownames(example_sce)[1:6], colour_by = "Cell_Cycle", shape_by = "Mutation_Status", size_by = "Gene_0002")
+
+</div>
+
+<iframe src="about:blank"></iframe>
+
+</body>
+</html>

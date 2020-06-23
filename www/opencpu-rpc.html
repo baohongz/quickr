@@ -1,0 +1,34 @@
+<html>
+<head>
+	<title>Smooth a Vector</title>
+	<script src='assets/js/jquery.min.js'></script>
+
+	<script src="opencpu-0.5.js"></script>
+</head>
+<body>
+
+<button id="submitbutton">Smooth a Vector [1,2,3,4,5,5,999,5,4,4,3,2,1]</button> <br>
+
+<pre><code></code></pre>
+
+<script>
+	//call R function: stats::var(x=data)
+	$("#submitbutton").click(function(){
+		ocpu.seturl("https://bigdata.biogen.com/ocpu/library/stats/R");
+		var mydata = [1,2,3,4,5,5,999,5,4,4,3,2,1];
+	    
+	    var req = ocpu.rpc("lowess",{
+	        x : mydata
+	    }, function(output){
+console.log(output);
+	        $("code").text(output.y.join("\n"));
+	    }); 
+	
+	    //optional
+	    req.fail(function(){
+	        alert("R returned an error: " + req.responseText); 
+	    });
+	});
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<style>
+html, body
+{
+background: #6699FF;
+text-align: center;
+font-family : "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+font-size:14px;
+}
+#container
+{
+background: #FFF;
+border: 0px #222 solid;
+margin: 0 auto;
+text-align: left;
+width: 10.25in;
+padding: 5px;
+overflow: auto;
+}
+#container form
+{
+margin: 0 auto;
+}
+label
+{
+float: left;
+width: 50px;
+}
+.leftCol
+{
+float: left;
+width: 3in;
+}
+.rightCol
+{
+float: left;
+width: 7in;
+}
+.references
+{
+font-size: x-small;
+text-indent: 20px;
+}
+</style>
+<base target="_blank" />
+<title>Count-based population viability analysis (PVA) using corrupted data</title> 
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js">       </script>
+<script>
+// This is done on load since we need the function on the server to deal with the file upload
+function saveRFunction(){
+	//Run this bit of code and store the R function to run on OpenCPU
+	var url = "https://cloud.opencpu.org/ocpu/library/base/R/identity/save";
+	// #txtRCommands is the id of the text box in the javascript
+	var rFunction = $("#RFunction").val();
+	// this bit sends the the RFunction in the hidden text area
+console.log(rFunction);
+	$.post(url,{ x: rFunction },  function (data) { 
+console.log(data);
+		var funloc = $.parseJSON(data).object;
+		funloc = "http://public.opencpu.org/R/tmp/"+funloc;
+		//set the action for the form
+		document.getElementById('FunctionLocation').value = funloc;                  
+	});              
+	setTimeout(function() {
+		// Wait 2 seconds because of Chrome before loading default form
+		var frm = document.getElementById("inputForm2");
+		subm2(frm,'/svg');
+	}, 1000); 
+};
+//function for first submit button; subm and subm2 same except the id
+function subm(f,ftype){
+document.getElementById("inputForm").action=document.getElementById('FunctionLocation').value+ftype;
+f.submit();
+}
+function subm2(f,ftype){
+document.getElementById("inputForm2").action=document.getElementById('FunctionLocation').value+ftype;
+f.submit();
+}
+</script>
+
+</head>
+<body onload="saveRFunction()">
+<div id="container">
+<h2>MARSS Case Study 1: Count-based PVA for data with observation error</h2>
+This web tool fits a count-based PVA model (sensu Dennis et al. 1991) from a univariate (one site) time series of abundance data with observation error (Holmes 2001, 2004).  The result is an estimated long-term rate of population growth (&lambda;), process variance estimate (&sigma;<sup>2</sup>) and non-process or observation error variance.  Extinction risk metrics sensu Dennis et al. (1991) along with an uncertainty plot sensu Ellner and Holmes (2008) are shown.
+</br></br>
+<div class="leftCol">
+<form enctype="multipart/form-data" action="" method="POST" target="test" id="inputForm">
+<fieldset>
+<legend><b>Upload a Dataset</b></legend>
+<i>Comma-delimited. 1st col time, 2nd col counts.  Missing counts NA.</i></br>
+File: <input name="!file:file" type="file" /> <!-- param name has to be file -->
+Header: <select name="header"><option value=TRUE> TRUE </option> <option value=FALSE> FALSE </option> </select> </br />
+<input name="!width" type="hidden" value=7 /> <!-- in inches -->
+<input name="!height" type="hidden" value=6 /> <!-- in inches -->
+<INPUT type="button" name="Submit" value="Run Analysis" onclick="subm(this.form,'/svg');"> <!-- svg so Firefox doesn't cache -->
+<INPUT type="button" name="Submit" value="Get PDF of Plot" onclick="subm(this.form,'/pdf');">           </fieldset>
+</form>
+<form action="" method="POST" target="test" id="inputForm2">
+<fieldset>
+<legend><b>Select an Example Dataset</b></legend>
+Dataset: 
+<select name="dataname">
+<option value='"wilddogs"' selected >African Wilddogs</option>
+<option value='"prairiechicken"'>Prairie Chickens</option>
+<option value='"grouse"'>Sage Grouse</option>
+<option value='"graywhales"'>Gray Whales</option>
+</select></br />
+<input name="!width" type="hidden" value=7 /> <!-- in inches -->
+<input name="!height" type="hidden" value=6 /> <!-- in inches -->
+<INPUT type="button" name="Submit" value="Run Analysis" onclick="subm2(this.form,'/svg');">
+<INPUT type="button" name="Submit" value="Get PDF of Plot" onclick="subm2(this.form,'/pdf');">
+</fieldset>
+</form>
+<fieldset class="references">
+<legend><b>References</b></legend>
+<p>Dennis, Brian, Patricia L. Munholland, and J. Michael Scott. "Estimation of growth and extinction parameters for endangered species." Ecological monographs 61.2 (1991): 115-143.</p>
+<p>Holmes, E. E. 2001. Estimating risks in declining populations with poor data. Proceedings of the National Academy of Science 98: 5072-5077.</p>
+</fieldset>
+<fieldset class="references">
+<legend><b>R Code</b></legend>
+<!-- if you do not want to see the R code, use this <textarea hidden="hidden" id="RFunction" style="display:none;"> -->
+<textarea id="RFunction" readonly="readonly" cols="27" rows="18" style="border:0px;margin:0px">
+myfunc <- function(file=NULL, header=TRUE,  dataname="wilddogs" ){
+
+library(MARSS)
+
+if(is.null(file)){
+dat=get(dataname)
+}else{
+dat=read.csv(file, header=header)
+dat=as.matrix(dat)
+}
+
+CSEGriskfigure(dat, silent=TRUE)
+}
+</textarea> 
+</fieldset>
+<input type="hidden" value="not set" id="FunctionLocation" /> <!-- this is where the function is stored -->
+<br />
+</div>
+<!-- This iframe holds the output image. -->
+<iframe style='width: 7in; height: 6in; border: 0px solid #000000; padding: 10px;' name='test' id="image_iframe" class="rightCol"></iframe>      
+</div> 
+<!-- This is an onload script, but Chrome is not loading the whole page before running the onload script.  Time out used above for this problem. -->
+</body>
+</html>

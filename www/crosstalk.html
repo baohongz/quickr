@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>crosstalk</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/loading-overlay.css">
+<style type="text/css" media="screen">
+	iframe { 
+	  z-index: 999999;
+	}
+</style>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+<script src='assets/js/loading-overlay.min.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+	var editor;
+	var resultHTML;
+	
+	function domarkdown(e){
+       	$('#resultdiv').loadingOverlay();
+		$('#runbtn').prop('disabled', true);
+
+		var req = ocpu.call("rmdtext", {
+			text : editor.getSession().getValue()
+		}, function(session){
+			console.log(session);
+			resultHTML = session.getFileURL("output.html");
+			$("iframe").attr('src', resultHTML);
+
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		}).fail(function(text){
+			alert("Error: " + req.responseText);
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		});
+	}
+	
+	$(function(){
+		editor = ace.edit("coding");
+		editor.setTheme("ace/theme/iplastic");
+		editor.getSession().setMode("ace/mode/r");
+		editor.getSession().setUseWrapMode(true);
+		editor.setFontSize("14px");
+
+//		ocpu.seturl("http://ngs.biogen.com/ocpu/library/QuickR/R");
+	});
+</script>
+</head>
+
+<body>
+&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button>
+&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button>
+<div class="panel-container">
+	<div id=coding class="panel-left">
+
+
+---
+title: "Gapminder data using crosstalk"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: lumen
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+# devtools::install_github("rstudio/leaflet#346")
+# wget -O rstudio-leaflet-ced45a9.tar.gz https://api.github.com/repos/rstudio/leaflet/tarball/pull/346/head
+# tibble_2.1.3
+# 
+
+library(tibble, lib.loc="/usr/lib64/R/library/tibble_2.1.3")
+
+library(tidyverse) ; library(gapminder) ; library(countrycode) ; library(sf) ; library(rnaturalearth) ; library(crosstalk) ; library(leaflet) ; library(d3scatter) ; library(DT)
+
+df <- gapminder %>% filter(year == 2007) %>% 
+  mutate(iso_a3 = countrycode(country, "country.name", "iso3c"), 
+         gdpPercap = round(gdpPercap, 0), 
+         lifeExp = round(lifeExp, 0))
+
+world <- ne_countries(type = "countries",  returnclass = 'sf') %>% 
+  left_join(., df, by = "iso_a3", sort = FALSE) %>% 
+  filter(!is.na(country)) %>% 
+  select("country", "continent" = "continent.y", "year", "lifeExp", "pop", "gdpPercap", "geometry") %>% 
+  as('Spatial')
+
+world_NA <- ne_countries(type = "countries",  returnclass = 'sf')
+
+sd <-  SharedData$new(world)
+sd_df <- SharedData$new(world@data, group = sd$groupName())
+```
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+filter_slider("lifeExp", "Life expectancy (years)", sd_df, ~lifeExp)
+filter_slider("gdpPercap", "Income per person ($)", sd_df, ~gdpPercap)
+```
+
+---
+
+This [R Markdown](http://rmarkdown.rstudio.com/) document uses the experimental [crosstalk](https://github.com/rstudio/crosstalk) R package to enable interactivity between different widgets that display the same [Gapminder](https://www.gapminder.org/data/) data.
+
+**Credits:**    
+The following packages were used: 
+[gapminder](https://cran.r-project.org/web/packages/gapminder/index.html),
+[flexdashboard](https://cran.r-project.org/web/packages/flexdashboard/index.html),
+[tidyverse](https://cran.r-project.org/web/packages/tidyverse/index.html),
+[countrycode](https://cran.r-project.org/web/packages/countrycode/index.html),
+[sf](https://cran.r-project.org/web/packages/sf/index.html), 
+[rnaturalearth](https://cran.r-project.org/web/packages/rnaturalearth/index.html)
+[leaflet](https://cran.r-project.org/web/packages/leaflet/index.html), [d3scatter](https://github.com/jcheng5/d3scatter), [DT](https://cran.r-project.org/web/packages/DT/index.html). 
+
+
+Row {data-height=550}
+-------------------------------------
+
+###
+
+```{r}
+pal <- colorFactor(c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"), domain = c("Africa", "Americas", "Asia", "Europe", "Oceania"), ordered = FALSE)
+
+leaflet(sd) %>% 
+  setView(9.998176, 14.531777, zoom = 2) %>%
+  addProviderTiles("CartoDB.Positron") %>% 
+  addPolygons(data = world_NA, color = "#969696", weight = 1, fillColor = "#808080") %>% 
+  addPolygons(color = "#969696", weight = 2, fillColor = ~pal(continent), fillOpacity = 0.8)
+```
+
+Row {data-height=450}
+-------------------------------------
+
+###
+
+```{r}
+d3scatter(sd_df, x = ~gdpPercap, y = ~lifeExp, color = ~continent, x_label = "Income per person", y_label = "Life expectancy")
+```
+
+###
+
+```{r}
+datatable(sd_df, rownames = FALSE, extensions = 'Scroller',
+         options = list(scrollY = 200, scroller = TRUE, columnDefs = list(list(className = 'dt-left', targets = 0:3))))
+```
+
+
+	</div>
+	<div class="splitter"></div>
+	<div id="resultdiv" class="panel-right">
+		<iframe id=result width=100% height=100% Color=result src=""></iframe>
+	</div>
+</div>
+<script>
+	$(".panel-left").resizable({
+
+	   handleSelector: ".splitter",
+	   resizeHeight:  false,
+	   onDragEnd: function( event, ui ) {editor.resize();}
+	});
+</script>
+
+</body>
+</html>

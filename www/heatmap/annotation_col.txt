@@ -1,0 +1,11 @@
+CellType	Time
+Sample1	CT1	1
+Sample2	CT2	2
+Sample3	CT1	3
+Sample4	CT2	4
+Sample5	CT1	5
+Sample6	CT2	1
+Sample7	CT1	2
+Sample8	CT2	3
+Sample9	CT1	4
+Sample10	CT2	5

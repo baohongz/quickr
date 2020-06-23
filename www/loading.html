@@ -1,0 +1,13 @@
+<html lang="en">
+<head>
+<link rel="stylesheet" href="assets/css/loading-overlay.css">
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/loading-overlay.min.js'></script>
+</head>
+
+<body>
+&nbsp;<button id="runbtn" onclick="$('#resultdiv').loadingOverlay();$('#runbtn').prop('disabled', true);">Run &raquo;</button>
+&nbsp;<button id="runbtn" onclick="$('#resultdiv').loadingOverlay('remove');$('#runbtn').prop('disabled', false);">Stop</button>
+<div id="resultdiv"></div>
+</body>
+</html>

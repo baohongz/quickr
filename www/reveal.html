@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>reveal</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/loading-overlay.css">
+<style type="text/css" media="screen">
+	iframe { 
+	  z-index: 999999;
+	}
+</style>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+<script src='assets/js/loading-overlay.min.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+	var editor;
+	var resultHTML;
+	
+	function domarkdown(e){
+       	$('#resultdiv').loadingOverlay();
+		$('#runbtn').prop('disabled', true);
+
+		var req = ocpu.call("rmdtext", {
+			text : editor.getSession().getValue()
+		}, function(session){
+			console.log(session);
+			resultHTML = session.getFileURL("output.html");
+			$("iframe").attr('src', resultHTML);
+
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		}).fail(function(text){
+			alert("Error: " + req.responseText);
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		});
+	}
+	
+	$(function(){
+		editor = ace.edit("coding");
+		editor.setTheme("ace/theme/iplastic");
+		editor.getSession().setMode("ace/mode/r");
+		editor.getSession().setUseWrapMode(true);
+		editor.setFontSize("14px");
+	});
+</script>
+</head>
+
+<body>
+&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button>
+&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button>
+<div class="panel-container">
+	<div id=coding class="panel-left">
+
+
+---
+title: "Rmarkdown reveal.js Slides"
+output: 
+  revealjs::revealjs_presentation:
+    self_contained: false
+    transition: none
+    reveal_plugins: ["search", "zoom", "notes", "chalkboard", "menu"]
+    reveal_options:
+      width: 100%
+      height: 100%
+      chalkboard: 
+        theme: chalkboard
+        toggleNotesButton: true
+      menu:
+        numbers: true
+---
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=3, dev='svg', echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+## Slide 1
+
+```{r ggplot_point}
+library(htmltools)
+library(svglite)
+library(ggplot2)
+
+tags$script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js")
+
+tags$script("
+$(document).ready(function() {
+$elms = $('img');
+console.log('hihi')
+$elms.addClass('no-border');
+});")
+
+tags$style("
+.no-border {
+border: 0px !important;
+}
+
+.row {
+  display: flex;
+}
+
+/* Create two equal columns that sits next to each other */
+.column {
+  flex: 50%;
+  padding: 10px;
+  height: 300px; /* Should be removed. Only for demonstration */
+}
+")
+
+
+
+s <- svgstring()
+ggplot(midwest, aes(x=area, y=poptotal)) + geom_point()
+
+p <- s()
+
+
+tags$div(class="row",tags$div(
+  class="column", style="background-color:#aaa;",HTML(p)),
+                     tags$div(
+  class="column", style="background-color:#bbb;","Col2",HTML(p))) 
+  
+
+```
+
+
+
+```{r}
+library(cowplot)
+library(dplyr)
+library(readr)
+
+
+### This script creates an R function to generate raincloud plots, then simulates
+### data for plots. If using for your own data, you only need lines 1-80.
+### It relies largely on code previously written by David Robinson
+### (https://gist.github.com/dgrtwo/eb7750e74997891d7c20)
+### and the package ggplot2 by Hadley Wickham
+
+
+# Load packages ----
+library(ggplot2)
+
+# Defining the geom_flat_violin function ----
+# Note: the below code modifies the
+# existing github page by removing a parenthesis in line 50
+
+"%||%" <- function(a, b) {
+  if (!is.null(a)) a else b
+}
+
+geom_flat_violin <- function(mapping = NULL, data = NULL, stat = "ydensity",
+                             position = "dodge", trim = TRUE, scale = "area",
+                             show.legend = NA, inherit.aes = TRUE, ...) {
+  layer(
+    data = data,
+    mapping = mapping,
+    stat = stat,
+    geom = GeomFlatViolin,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      trim = trim,
+      scale = scale,
+      ...
+    )
+  )
+}
+
+#' @rdname ggplot2-ggproto
+#' @format NULL
+#' @usage NULL
+#' @export
+GeomFlatViolin <-
+  ggproto("GeomFlatViolin", Geom,
+    setup_data = function(data, params) {
+      data$width <- data$width %||%
+        params$width %||% (resolution(data$x, FALSE) * 0.9)
+
+      # ymin, ymax, xmin, and xmax define the bounding rectangle for each group
+      data %>%
+        group_by(group) %>%
+        mutate(
+          ymin = min(y),
+          ymax = max(y),
+          xmin = x,
+          xmax = x + width / 2
+        )
+    },
+
+    draw_group = function(data, panel_scales, coord) {
+      # Find the points for the line to go all the way around
+      data <- transform(data,
+        xminv = x,
+        xmaxv = x + violinwidth * (xmax - x)
+      )
+
+      # Make sure it's sorted properly to draw the outline
+      newdata <- rbind(
+        plyr::arrange(transform(data, x = xminv), y),
+        plyr::arrange(transform(data, x = xmaxv), -y)
+      )
+
+      # Close the polygon: set first and last point the same
+      # Needed for coord_polar and such
+      newdata <- rbind(newdata, newdata[1, ])
+
+      ggplot2:::ggname("geom_flat_violin", GeomPolygon$draw_panel(newdata, panel_scales, coord))
+    },
+
+    draw_key = draw_key_polygon,
+
+    default_aes = aes(
+      weight = 1, colour = "grey20", fill = "white", size = 0.5,
+      alpha = NA, linetype = "solid"
+    ),
+
+    required_aes = c("x", "y")
+  )
+
+
+
+## define function to calculate summary statistics
+## Summarizes data.
+## Gives count, mean, standard deviation, standard error of the mean, and 
+## confidence interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+##   adapted from Ryan Hope's function: 
+##   https://www.rdocumentation.org/packages/Rmisc/versions/1.5/topics/summarySE
+
+
+
+
+# summarySE function
+summarySE <- function(data = NULL, measurevar, groupvars = NULL, na.rm = FALSE,
+                      conf.interval = .95, .drop = TRUE) {
+  library(plyr)
+
+  # New version of length which can handle NA's: if na.rm==T, don't count them
+  length2 <- function(x, na.rm = FALSE) {
+    if (na.rm) {
+      sum(!is.na(x))
+    } else {
+      length(x)
+    }
+  }
+
+  # This does the summary. For each group's data frame, return a vector with
+  # N, mean, median, and sd
+
+  datac <- plyr::ddply(data, groupvars, .drop=.drop,
+                   .fun = function(xx, col) {
+                       c(N      = length2(xx[[col]], na.rm=na.rm),
+                         mean   = mean(xx[[col]], na.rm=na.rm),
+                         median = median(xx[[col]], na.rm=na.rm),
+                         sd      = sd(xx[[col]], na.rm=na.rm)
+                       )
+                   },
+                   measurevar
+  )
+  
+  # Rename the "mean" and "median" columns    
+ datac <- plyr::rename(datac, c("mean" = paste(measurevar, "_mean", sep = "")))
+ datac <- plyr::rename(datac, c("median" = paste(measurevar, "_median", sep = "")))
+  
+ datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+
+  # Confidence interval multiplier for standard error
+  # Calculate t-statistic for confidence interval:
+  # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+  ciMult <- qt(conf.interval / 2 + .5, datac$N - 1)
+  datac$ci <- datac$se * ciMult
+
+  return(datac)
+}
+
+
+## Short script to summarize data for the rainclouds tutorial.
+## Simulates data drawn from two distribions of similar mean and SD,
+## with group A being drawn from a random exponential distribution
+## and group B drawn drawn from a random normal distribution.
+
+
+
+# Simulate data ----
+
+m <- 50 # mean
+s <- 25 # sd
+n <- 250 # drawsx
+
+# Calculate log-normal parameters ----
+
+location <- log(m^2 / sqrt(s^2 + m^2))
+shape <- sqrt(log(1 + (s^2 / m^2)))
+
+# Set seed to get same data everytime ----
+set.seed(123)
+
+# Create data by hand ----
+
+simdat_group1 <- rlnorm(n, location, shape)
+simdat_group2 <- rnorm(n, m, s)
+
+simdat <- c(simdat_group1, simdat_group2)
+simdat <- data.frame(c(rep("Group1", times = n), 
+                       rep("Group2", times = n)), simdat)
+colnames(simdat) <- c("group", "score")
+
+# Calculate summary stats ----
+summary_simdat <- summarySE(simdat, measurevar = "score", 
+                                     groupvars = c("group"))
+
+```
+
+## Slide 0
+```{r echo=FALSE}
+
+tags$h3(align="left",style="font-size:48px;color:darkred;margin-top:50px;",'List')
+tags$ul(
+tags$li('Press "Esc" or "o" key to enter the the slide overview'),
+tags$li('Alt + mouse click to zoom in/out'),
+tags$li("left",'Press "s" key to speaker view to see notes')
+)
+tags$aside('Here are some notes.',class = "notes")
+
+div(align="left", style="color:darkred;margin-top:50px;","The",strong("hi"),"tag is used to create bold text.")
+
+tags$div(align="left", class="header", checked=NA,
+  list(
+    tags$p("Ready to take the Shiny tutorial? If so"),
+    tags$a(href="shiny.rstudio.com/tutorial", "Click Here!"),
+    "Thank you"
+  )
+)
+
+
+```
+
+## Slide 1
+The function gives us two groups of N = 250 observations each; both have similar means and SDs, but group one is drawn from an exponential distribution. Now we'll plot a basic barplot for our simulated date. Note that we're using the 'cowplot' theme to produce simple, uncluttered plots - you should setup your own theme or other customization options as desired:
+
+```{r barplot}
+#Barplot
+p1 <- ggplot(summary_simdat, aes(x = group, y = score_mean, fill = group))+
+  geom_bar(stat = "identity", width = .8)+
+  geom_errorbar(aes(ymin = score_mean - se, ymax = score_mean+se), width = .2)+
+  guides(fill=FALSE)+
+  ylim(0, 80)+
+  ylab('Score')+xlab('Group')+theme_cowplot()+
+  ggtitle("Figure 1: Barplot +/- SEM")
+
+p1
+```
+
+## Slide 2
+There we go - just needs some little asterixes and we're ready to publish! Just kidding. Let's start our first, most basic raincloud plot like so, using the 'geom_flat_violin' option our function already setup for us:
+
+```{r, basic_rc}
+#Basic plot
+p2 <- ggplot(simdat,aes(x=group,y=score))+
+  geom_flat_violin(position = position_nudge(x = .2, y = 0),adjust =2)+
+  geom_point(position = position_jitter(width = .15), size = .25)+
+  ylab('Score')+xlab('Group')+theme_cowplot()+
+  ggtitle('Figure 2: Basic Rainclouds or Little Prince Plot')
+
+p2
+```
+
+## Slide 3
+Now we can see the raw data (our rain), and the overlaid probability distribution (the 'cloud'). Let's make it a bit prettier and easier to read by adding some colours. We can also use 'coordinate flip' to rotate the entire plot about the x-axis, transforming our 'little prince plots' into true rainclouds:
+
+```{r, pretty_rc}
+#Plot with colours and coordinate flip
+p3 <- ggplot(simdat,aes(x=group,y=score, fill = group))+
+  geom_flat_violin(position = position_nudge(x = .2, y = 0),adjust = 2)+
+  geom_point(position = position_jitter(width = .15), size = .25)+
+  ylab('Score')+xlab('Group')+coord_flip()+theme_cowplot()+guides(fill = FALSE)+
+  ggtitle('Figure 3: The Basic Raincloud with Colour')
+
+p3
+```
+
+## Slide 4
+In case you want to change the smoothing kernel used to calculate the PDFs, you can do so by altering the 'adjust' flag for geom_flat_violin. For example, here we've dropped our smoothing to give a much bumpier raincloud:
+
+```{r, unsmooth_rc}
+#Raincloud with reduced smoothing
+p4 <- ggplot(simdat,aes(x=group,y=score, fill = group))+
+  geom_flat_violin(position = position_nudge(x = .2, y = 0),adjust = .2)+
+  geom_point(position = position_jitter(width = .15), size = .25)+
+  ylab('Score')+xlab('Group')+coord_flip()+theme_cowplot()+guides(fill = FALSE) +
+  ggtitle('Figure 4: Unsmooth Rainclouds')
+
+p4
+```
+
+## Slide 5
+Now we need to add something to help us easily evaluate any possible differences between our groups or conditions. To achieve this, we'll add some boxplots to complete our raincloud plots. To get the boxplots to line up however we like, we need to set our x-axis to a numeric value, so we can add a fixed offset: 
+
+```{r, boxplot_rc}
+#Rainclouds with boxplots
+p5 <- ggplot(simdat,aes(x=group,y=score, fill = group))+
+  geom_flat_violin(position = position_nudge(x = .25, y = 0),adjust =2)+
+  geom_point(position = position_jitter(width = .15), size = .25)+
+#note that here we need to set the x-variable to a numeric variable and bump it to get the boxplots to line up with the rainclouds. 
+  geom_boxplot(aes(x = as.numeric(group)+0.25, y = score),outlier.shape = NA, alpha = 0.3, width = .1, colour = "BLACK") +
+  ylab('Score')+xlab('Group')+coord_flip()+theme_cowplot()+guides(fill = FALSE, colour = FALSE) +
+  ggtitle("Figure 5: Raincloud Plot w/Boxplots")
+
+p5
+```
+
+## Slide 6
+Now we'll make a few aesthetic tweaks. You may want to turn these on or off depending on your preferences. We'll take the black outline away from the plots by adding the colour = group parameter, and we'll also change colour palettes using the built-in colour brewer tool. 
+
+```{r, colour_rc}
+#Rainclouds with boxplots
+p6 <- ggplot(simdat,aes(x=group,y=score, fill = group, colour = group))+
+  geom_flat_violin(position = position_nudge(x = .25, y = 0),adjust =2, trim = FALSE)+
+  geom_point(position = position_jitter(width = .15), size = .25)+
+  geom_boxplot(aes(x = as.numeric(group)+0.25, y = score),outlier.shape = NA, alpha = 0.3, width = .1, colour = "BLACK") +
+  ylab('Score')+xlab('Group')+coord_flip()+theme_cowplot()+guides(fill = FALSE, colour = FALSE) +
+  scale_colour_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+  ggtitle("Figure 6: Change in Colour Palette")
+
+p6
+```
+
+## Slide 7
+Alternatively, you may prefer to simply plot mean or median with standard confidence intervals. Here we'll plot the mean as well as 95% confidence intervals, which we've calculated using the included SummarySE function, by overlaying them on of our clouds:
+
+```{r, meanplot_rc}
+#Rainclouds with mean and confidence interval
+p7 <- ggplot(simdat,aes(x=group,y=score, fill = group, colour = group))+
+  geom_flat_violin(position = position_nudge(x = .25, y = 0),adjust =2)+
+  geom_point(position = position_jitter(width = .15), size = .25)+
+  geom_point(data = summary_simdat, aes(x = group, y = score_mean), position = position_nudge(.25), colour = "BLACK")+
+  geom_errorbar(data = summary_simdat, aes(x = group, y = score_mean, ymin = score_mean-ci, ymax = score_mean+ci), position = position_nudge(.25), colour = "BLACK", width = 0.1, size = 0.8)+
+  ylab('Score')+xlab('Group')+coord_flip()+theme_cowplot()+guides(fill = FALSE, colour = FALSE) +
+  scale_colour_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+  ggtitle("Figure 7: Raincloud Plot with Mean ± 95% CI")
+
+p7
+```
+
+## Slide 8
+If your data is discrete or ordinal you may need to manually add some jitter to improve the plot:
+
+```{r, striated}
+#Rainclouds with striated data
+
+#Round data
+simdat_round<-simdat
+simdat_round$score<-round(simdat$score,0) 
+
+#Striated/grouped when no jitter applied
+ap1 <- ggplot(simdat_round,aes(x=group,y=score,fill=group,col=group))+
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .6,adjust =4)+
+    geom_point(size = 1, alpha = 0.6)+ylab('Score')+
+    scale_fill_brewer(palette = "Dark2")+
+    scale_colour_brewer(palette = "Dark2")+
+    guides(fill = FALSE, col = FALSE)+
+    ggtitle('Striated')
+
+#Added jitter helps
+ap2 <- ggplot(simdat_round,aes(x=group,y=score,fill=group,col=group))+
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .4,adjust =4)+
+    geom_point(position=position_jitter(width = .15),size = 1, alpha = 0.4)+ylab('Score')+
+    scale_fill_brewer(palette = "Dark2")+
+    scale_colour_brewer(palette = "Dark2")+
+    guides(fill = FALSE, col = FALSE)+
+    ggtitle('Added jitter')
+
+all_plot <- plot_grid(ap1, ap2, labels="AUTO")
+
+# add title to cowplot
+title <- ggdraw() + 
+  draw_label("Figure 8: Jittering Ordinal Data",
+             fontface = 'bold')
+
+all_plot_final <- plot_grid(title, all_plot, ncol = 1, rel_heights = c(0.1, 1)) # rel_heights values control title margins
+
+all_plot_final
+```
+
+## Slide 9
+Finally, in many situations you may have nested, factorial, or repeated measures data. In this case, one option is to use plot facets to group by factor, emphasizing pairwise differences between conditions or factor levels:
+
+```{r, factorial}
+#Add additional factor/condition
+simdat$gr2<-as.factor(c(rep('high',125),rep('low',125),rep('high',125),rep('low',125)))
+
+
+p9 <- ggplot(simdat,aes(x=group,y=score, fill = group, colour = group))+
+  geom_flat_violin(position = position_nudge(x = .25, y = 0),adjust =2, trim = TRUE)+
+  geom_point(position = position_jitter(width = .15), size = .25)+
+  geom_boxplot(aes(x = as.numeric(group)+0.25, y = score),outlier.shape = NA, alpha = 0.3, width = .1, colour = "BLACK") +
+  ylab('Score')+xlab('Group')+coord_flip()+theme_cowplot()+guides(fill = FALSE, colour = FALSE) + facet_wrap(~gr2)+
+  scale_colour_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+  ggtitle("Figure 9: Complex Raincloud Plots with Facet Wrap")
+
+p9
+```
+
+## Slide 10
+Now, we'll plot our rainclouds with boxplots again, this time adding some dodge so we can better emphasize differences between our factors and factor levels. Note that here we need to nudge the point x-axis as a numeric valuable, as this work around does not currently work for boxplots with multiple factors:
+
+```{r, loadrepdat}
+#load the repeated measures facotiral data
+
+rep_data <- read_csv("https://raw.githubusercontent.com/baohongz/data/gh-pages/repeated_measures_data.csv", 
+    col_types = cols(group = col_factor(levels = c("1", 
+        "2")), time = col_factor(levels = c("1", 
+        "2", "3"))))
+
+sumrepdat <- summarySE(rep_data, measurevar = "score", groupvars=c("group", "time"))
+
+
+# Rainclouds for repeated measures, continued 
+p10 <- ggplot(rep_data, aes(x = time, y = score, fill = group)) +
+  geom_flat_violin(aes(fill = group),position = position_nudge(x = .1, y = 0), adjust = 1.5, trim = FALSE, alpha = .5, colour = NA)+
+  geom_point(aes(x = as.numeric(time)-.15, y = score, colour = group),position = position_jitter(width = .05), size = 1, shape = 20)+
+  geom_boxplot(aes(x = time, y = score, fill = group),outlier.shape = NA, alpha = .5, width = .1, colour = "black")+
+  scale_colour_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+  ggtitle("Figure 10: Repeated Measures Factorial Rainclouds")
+
+p10
+```
+
+## Slide 11
+Finally, you may want to add traditional line plots to emphasize factorial interactions and main effects. Here we've plotted the mean and standard error for each cell of our design, and connected these with a hashed line. There are a lot of possible options though, so you'll need to decide what works best for your needs: 
+
+```{r, repdata3}
+#Rainclouds for repeated measures, additional plotting options 
+
+p11 <- ggplot(rep_data, aes(x = time, y = score, fill = group)) +
+  geom_flat_violin(aes(fill = group),position = position_nudge(x = .1, y = 0), adjust = 1.5, trim = FALSE, alpha = .5, colour = NA)+
+  geom_point(aes(x = as.numeric(time)-.15, y = score, colour = group),position = position_jitter(width = .05), size = .25, shape = 20)+
+  geom_boxplot(aes(x = time, y = score, fill = group),outlier.shape = NA, alpha = .5, width = .1, colour = "black")+
+  geom_line(data = sumrepdat, aes(x = as.numeric(time)+.1, y = score_mean, group = group, colour = group), linetype = 3)+
+  geom_point(data = sumrepdat, aes(x = as.numeric(time)+.1, y = score_mean, group = group, colour = group), shape = 18) +
+  geom_errorbar(data = sumrepdat, aes(x = as.numeric(time)+.1, y = score_mean, group = group, colour = group, ymin = score_mean-se, ymax = score_mean+se), width = .05)+
+  scale_colour_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+  ggtitle("Figure 11: Repeated Measures - Factorial (Extended)")
+
+p11
+```
+
+
+## Slide 12
+Here is the same plot, but with the grouping variable flipped: 
+
+```{r, repdata4}
+#Rainclouds for repeated measures, additional plotting options 
+
+p12 <- ggplot(rep_data, aes(x = group, y = score, fill = time)) +
+  geom_flat_violin(aes(fill = time),position = position_nudge(x = .1, y = 0), adjust = 1.5, trim = FALSE, alpha = .5, colour = NA)+
+  geom_point(aes(x = as.numeric(group)-.15, y = score, colour = time),position = position_jitter(width = .05), size = .25, shape = 20)+
+  geom_boxplot(aes(x = group, y = score, fill = time),outlier.shape = NA, alpha = .5, width = .1, colour = "black")+
+  geom_line(data = sumrepdat, aes(x = as.numeric(group)+.1, y = score_mean, group = time, colour = time), linetype = 3)+
+  geom_point(data = sumrepdat, aes(x = as.numeric(group)+.1, y = score_mean, group = time, colour = time), shape = 18) +
+  geom_errorbar(data = sumrepdat, aes(x = as.numeric(group)+.1, y = score_mean, group = time, colour = time, ymin = score_mean-se, ymax = score_mean+se), width = .05)+
+  scale_colour_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+  ggtitle("Figure 12: Repeated Measures - Factorial (Extended)") +
+  coord_flip()
+
+p12
+```
+
+
+
+	</div>
+	<div class="splitter"></div>
+	<div id="resultdiv" class="panel-right">
+		<iframe id=result width=100% height=100% Color=result src=""></iframe>
+	</div>
+</div>
+<script>
+	$(".panel-left").resizable({
+
+	   handleSelector: ".splitter",
+	   resizeHeight:  false,
+	   onDragEnd: function( event, ui ) {editor.resize();}
+	});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>visNetwork</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/loading-overlay.css">
+<style type="text/css" media="screen">
+	iframe { 
+	  z-index: 999999;
+	}
+</style>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+<script src='assets/js/loading-overlay.min.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+	var editor;
+	var resultHTML;
+	
+	function domarkdown(e){
+       	$('#resultdiv').loadingOverlay();
+		$('#runbtn').prop('disabled', true);
+
+		var req = ocpu.call("rmdtext", {
+			text : editor.getSession().getValue()
+		}, function(session){
+			console.log(session);
+			resultHTML = session.getFileURL("output.html");
+			$("iframe").attr('src', resultHTML);
+
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		}).fail(function(text){
+			alert("Error: " + req.responseText);
+			if ($('#resultdiv').hasClass('loading')) {
+	        	$('#resultdiv').loadingOverlay('remove');
+	      	}
+			$('#runbtn').prop('disabled', false);
+		});
+	}
+	
+	$(function(){
+		editor = ace.edit("coding");
+		editor.setTheme("ace/theme/iplastic");
+		editor.getSession().setMode("ace/mode/r");
+		editor.getSession().setUseWrapMode(true);
+		editor.setFontSize("14px");
+	});
+</script>
+</head>
+
+<body>
+&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button>
+&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button>
+<div class="panel-container">
+	<div id=coding class="panel-left">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+
+```{r, results='asis'}
+library(igraph)
+library(RColorBrewer)
+library(visNetwork)
+library(dplyr)
+library(readr)
+got_edges <- read_csv(
+  file = "http://bit.ly/2Fc4RrO")
+got_nodes <- data.frame(label = unique(c(got_edges$Source, 
+                                         got_edges$Target)), 
+                        stringsAsFactors = FALSE) %>%
+  mutate(id = row_number())
+got_edges <- mutate(
+  got_edges, 
+  from = inner_join(got_edges, 
+                    got_nodes, 
+                    by = c("Source" = "label"))$id,
+  to = inner_join(got_edges, 
+                  got_nodes, 
+                  by = c("Target" = "label"))$id)
+
+got_nodes$value <- degree( graph_from_data_frame(d = got_edges, directed = FALSE, vertices = got_nodes))
+
+got_network_igraph <- graph_from_data_frame(d = got_edges, directed = FALSE, vertices = got_nodes)
+
+membs_fc <- cluster_fast_greedy(got_network_igraph)
+membs_cols <- brewer.pal(n = max(membership(membs_fc)), name = 'RdYlBu')
+got_nodes$color <- membs_cols[membership(membs_fc)]
+
+got_network <- visNetwork(got_nodes, 
+                          got_edges,  
+                          height = "800px", 
+                          width = "100%") %>% 
+  visEdges(arrows = "from", color = "black") %>% 
+  visNodes(shape = "circle", 
+           value = 50, 
+           scaling = list(min = 40, max = 70) ) %>% 
+  visInteraction(navigationButtons = TRUE) %>%
+  visOptions(highlightNearest = TRUE) %>%
+  visLayout(randomSeed = 123) 
+
+visExport(graph = got_network)
+
+
+```
+
+	</div>
+	<div class="splitter"></div>
+	<div id="resultdiv" class="panel-right">
+		<iframe id=result width=100% height=100% Color=result src=""></iframe>
+	</div>
+</div>
+<script>
+	$(".panel-left").resizable({
+
+	   handleSelector: ".splitter",
+	   resizeHeight:  false,
+	   onDragEnd: function( event, ui ) {editor.resize();}
+	});
+</script>
+
+</body>
+</html>

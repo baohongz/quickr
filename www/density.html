@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+    
+<script src="underscore-min.js"></script>    
+<script src="jquery-1.10.2.min.js"></script>
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+$(function(){
+  var editor = ace.edit("editor");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+console.log(session);
+console.log(session.getFileURL("output.html"));
+      $("iframe").attr('src', session.getFileURL("output.html"));     
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+  editor.on("change", update);
+  
+  //init on start
+  domarkdown();  
+});
+</script>
+
+<style type="text/css" media="screen">
+ 
+#editor { 
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 40%;
+  height: 100%;
+}
+
+iframe { 
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 60%;
+  height: 100%;
+  border: 0;
+  margin: 0;
+  z-index: 999999;
+}
+
+</style>
+</head>
+<body>
+
+
+
+<div id="editor">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, message=FALSE, fig.width=8, fig.height=5, dev='svg'}
+library(ggplot2)
+
+dataf <- data.frame(mydata=rnorm(1000))
+data <- dataf$mydata
+q0 <- quantile(data, 0)
+q33 <- quantile(data, .333)
+q66 <- quantile(data, .666)
+q100 <- quantile(data, 1.0)
+p0 <- ggplot(dataf, aes(mydata)) + geom_density(fill="grey75", alpha=0.5)
+plotd <- ggplot_build(p0)$data[[1]]
+
+myplot <- p0+geom_area(data = subset(plotd, x>=q0&x<=q33), aes(x=x, y=y), fill="green", alpha=0.5) + geom_area(data = subset(plotd, x>=q66&x<=q100), aes(x=x, y=y), fill="red", alpha=0.5) + theme_void()
+
+myplot
+
+```
+</div>
+
+<iframe src="about:blank"></iframe>
+
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<style type="text/css" media="screen">
+ 
+iframe { 
+  z-index: 999999;
+}
+
+</style>
+<script src="underscore-min.js"></script>    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+<script src='https://rawgit.com/RickStrahl/jquery-resizable/master/src/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+  var editor;
+  var resultHTML;
+
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+console.log(session);
+      resultHTML = session.getFileURL("output.html");
+	  $("iframe").attr('src', resultHTML);
+
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+$(function(){
+
+  el = document.getElementById("coding");
+  text = el.textContent;
+console.log(text);
+  editor = ace.edit(el);
+  editor.session.setValue(text);
+
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+//  editor.on("change", update);
+  
+  //init on start
+//  domarkdown();  
+
+
+});
+
+
+
+</script>
+
+
+</head>
+<body>
+
+<button onclick="domarkdown();">Run</button>
+<button onclick="winf=window.open(resultHTML); return false;">Print</button>
+
+<div class="panel-container">
+            <div id=coding class="panel-left">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r, results='asis'}
+library(htmltools)
+htmltools::tags$script(src = "https://d3js.org/d3.v4.min.js")
+htmltools::tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/dimple/2.3.0/dimple.latest.min.js")
+
+df_to_js <- function(x, var_name = "data", ...){
+ 
+  json_data <- jsonlite::toJSON(x, ...)
+ 
+  htmltools::tags$script(paste0("var ",var_name," = ", json_data, ";"))
+}
+
+df_to_js(iris)
+
+```
+
+```{js echo=FALSE}
+// javascript code goes here
+
+var mydiv = document.createElement("div");
+mydiv.id ="vis";
+document.body.appendChild(mydiv);
+
+
+// Make the visualization
+var svg = dimple.newSvg("#vis", "100%", 600);
+var chart = new dimple.chart(svg, data);
+chart.addMeasureAxis("x", "Sepal.Length");
+chart.addMeasureAxis("y", "Petal.Width");
+chart.addSeries(["Sepal.Length","Petal.Width","Species"], dimple.plot.bubble);
+chart.draw();
+
+// Responsive sizing
+window.addEventListener('resize', function(event){
+  chart.draw(0, true);
+});
+```
+
+
+
+
+
+            </div>
+
+            <div class="splitter">
+            </div>
+
+            <div class="panel-right">
+<iframe id=result width=100% height=100% name=result src=""></iframe>
+            </div>
+</div>
+
+<script>
+$(".panel-left").resizable({
+   handleSelector: ".splitter",
+   resizeHeight:  false
+ });
+</script>
+
+
+</body>
+</html>

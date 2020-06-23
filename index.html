@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+	<title>QuickR: R for Dummies</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+    <link type="text/css" rel="stylesheet" href="css/materialize.css"  media="screen,projection"/>
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link type="text/css" rel="stylesheet" href="css/style.css"/>
+    <link type="text/css" rel="stylesheet" href="css/github-buttons.css"/>
+ 	<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,700' rel='stylesheet' type='text/css'>
+  </head>
+
+  <body>
+    <nav class="blue lighten-1" role="navigation">
+      <div class="nav-wrapper container"><span id="logo-container" class="sanspro"><span style="font-weight:bold;">QuickR:</span> R for Dummies</span>
+      </div>
+    </nav>
+	<p>
+
+    <div class="container center">
+    <div class="row">
+      <form class="col s12">
+        <div class="row">
+          <div class="input-field col s2">
+            <!-- <i class="material-icons prefix">sort_by_alpha</i> -->
+            <select id="gridsort">
+              <option value="name" selected>Name</option>
+              <option value="index">Index</option>
+              <!-- <option value="stars">Github stars</option> -->
+            </select>
+            <label>Sort</label>
+          </div>
+          <div class="input-field col s2">
+            <!-- <i class="material-icons prefix">search</i> -->
+            <input type="text" id="textfilter" class="validate" placeholder="search name, author, description">
+            <label>Text Filter</label>
+          </div>
+<!--
+          <div class="input-field col s3">
+            <select id="authorfilter">
+              <option value="" selected>&nbsp;</option>
+            </select>
+            <label>Author Filter</label>
+          </div>
+-->
+          <div class="input-field col s3">
+            <!-- <i class="material-icons prefix">sort_by_alpha</i> -->
+            <select id="tagfilter">
+              <option value="" selected>&nbsp;</option>
+              <!-- <option value="author">Author</option> -->
+            </select>
+            <label>Tag Filter</label>
+          </div>
+        </div>
+      </form>
+    </div>
+    </div>
+    <!-- <div class="container"> -->
+    <div class="main-container">
+      <div class="row" id="grid">
+        
+<!------------------------------------------------------------------>
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/HazardRatio">
+            <img class="valign" src="
+              www/HazardRatio/HazardRatio.png
+            "></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/HazardRatio"><span class="card-title grey-text text-darken-4">Forest Plot of Hazard Ratios</span></a>
+            <p class="widget-shortdesc">Show statstitics from multiple groups or multiple studies for meta analysis
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,clinical</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Forest Plot of Hazard Ratios<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/heatmap">
+            <img class="valign" src="www/heatmap/heatmap.png" height=300px></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/heatmap"><span class="card-title grey-text text-darken-4">Heatmap</span></a>
+            <p class="widget-shortdesc">Show pattern of gene expression by clustering
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,omics</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Heatmap<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/volcano">
+            <img class="valign" src="www/volcano/volcano.png"></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/volcano"><span class="card-title grey-text text-darken-4">Volcano</span></a>
+            <p class="widget-shortdesc">In omics studies, a volcano plot is a type of scatter-plot that is used to quickly identify changes in large data sets. It plots significance versus fold-change on the y and x axes, respectively.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,omics</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Volcano<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/survival">
+            <img class="valign" src="www/survival/survival.png"></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/survival"><span class="card-title grey-text text-darken-4">Survival</span></a>
+            <p class="widget-shortdesc">Survival analysis corresponds to a set of statistical approaches used to investigate the time it takes for an event of interest to occur.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,clinical</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Survival<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/boxplot">
+            <img class="valign" src="
+              www/boxplot/boxplot_val.png
+            "></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/boxplot"><span class="card-title grey-text text-darken-4">Boxplot</span></a>
+            <p class="widget-shortdesc">an ANOVA significance test on data points grouped by features, e.g. treatment, timepoint.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,clinical</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Boxplot<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/balloon">
+            <img class="valign" src="www/balloon/balloon.png" height=300px></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/balloon"><span class="card-title grey-text text-darken-4">Balloon</span></a>
+            <p class="widget-shortdesc">Balloon Plot as alternative to a heatmap.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,clinical</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Balloon<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/ggtree">
+            <img class="valign" src="
+              www/ggtree/ggtree.png
+            "></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/ggtree"><span class="card-title grey-text text-darken-4">Phylogenetic Tree</span></a>
+            <p class="widget-shortdesc">A phylogenetic tree is a diagram that represents evolutionary relationships among organisms. The pattern of branching in a phylogenetic tree reflects how species or other groups evolved from a series of common ancestors.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,clinical</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Phylogenetic Tree<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/corr">
+            <img class="valign" src="
+              www/corr/corr.png
+            "></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/corr"><span class="card-title grey-text text-darken-4">Correlation</span></a>
+            <p class="widget-shortdesc">The corrplot package is a graphical display of a correlation matrix, confidence interval.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,clinical</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">Correlation<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/ggscatter">
+            <img class="valign" src="www/ggscatter/ggscatter.png" height=300px></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/ggscatter"><span class="card-title grey-text text-darken-4">ggscatter</span></a>
+            <p class="widget-shortdesc">Scatter Plot in ggplot2 style
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">visualization,clinical</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">ggscatter<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/googleVis.html">
+            <img class="valign" src="
+              www/images/googleVis.png
+            "></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/googleVis.html"><span class="card-title grey-text text-darken-4">googleVis</span></a>
+            <p class="widget-shortdesc">R interface to Google's chart tools, allowing users to create interactive charts based on data frames.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">interactive,general</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">googleVis<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/networkD3.html">
+            <img class="valign" src="www/images/networkD3.png" height=300px></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/networkD3.html"><span class="card-title grey-text text-darken-4">networkD3</span></a>
+            <p class="widget-shortdesc">R interface to Google's chart tools, allowing users to create interactive charts based on data frames.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">interactive,general</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">networkD3<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/ComplexHeatmap.html">
+            <img class="valign" src="www/images/ComplexHeatmap.png" height=300px></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/ComplexHeatmap.html"><span class="card-title grey-text text-darken-4">ComplexHeatmap</span></a>
+            <p class="widget-shortdesc">R interface to Google's chart tools, allowing users to create interactive charts based on data frames.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">interactive,general</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">ComplexHeatmap<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/colorspace.html">
+            <img class="valign" src="www/images/colorspace.png" height=300px></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/colorspace.html"><span class="card-title grey-text text-darken-4">colorspace</span></a>
+            <p class="widget-shortdesc">R interface to Google's chart tools, allowing users to create interactive charts based on data frames.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">interactive,general</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">colorspace<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+        <div class="card grid-item invisible" data-author="bz">
+          <div class="card-image waves-effect waves-block waves-light">
+            <div style="width:350px; height:300px; padding:3px;" class="valign-wrapper">
+            <a href="www/factoextra.html">
+            <img class="valign" src="www/images/factoextra.png" height=300px></a>
+            </div>
+          </div>
+          <div class="card-content widget-content">
+            <a href="www/factoextra.html"><span class="card-title grey-text text-darken-4">factoextra</span></a>
+            <p class="widget-shortdesc">R interface to Google's chart tools, allowing users to create interactive charts based on data frames.
+</p>
+            <p class="widget-list-item"><i class="material-icons meta-bullet green-text">stop</i><span class="green-text">tags:</span> <span class="widget-tags widget-meta">interactive,general</span></p>
+</span></p>
+            <div class="more-icon activator"><i class="material-icons right">more_vert</i></div>
+          </div>
+          <div class="card-reveal" style="display: none; -webkit-transform: translateY(0px);">
+            <span class="card-title grey-text text-darken-4">factoextra<i class="material-icons right">close</i></span>
+            <p>(full meta data to go here)</p>
+            </div>
+        </div>
+
+<!------------------------------------------------------------------>
+        
+      </div>
+    </div>
+
+    <footer class="page-footer light-blue">
+      <div class="footer-copyright">
+        <div class="container">
+        </div>
+      </div>
+    </footer>
+
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/materialize.min.js"></script>
+    <script type="text/javascript" src="js/isotope.min.js"></script>
+    <script type="text/javascript" src="js/grid.js"></script>
+  </body>
+</html>

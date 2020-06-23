@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+    
+<script src="underscore-min.js"></script>    
+<script src="jquery-1.10.2.min.js"></script>
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+$(function(){
+  var editor = ace.edit("editor");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+console.log(session);
+console.log(session.getFileURL("output.html"));
+      $("iframe").attr('src', session.getFileURL("output.html"));     
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+  editor.on("change", update);
+  
+  //init on start
+  domarkdown();  
+});
+</script>
+
+<style type="text/css" media="screen">
+ 
+#editor { 
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 40%;
+  height: 100%;
+}
+
+iframe { 
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 60%;
+  height: 100%;
+  border: 0;
+  margin: 0;
+  z-index: 999999;
+}
+
+</style>
+</head>
+<body>
+
+
+<div id="editor">
+
+---
+title: "ggplotly geoms"
+author: "Carson Sievert"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(plotly)
+library(plyr)
+library(flexdashboard)
+
+# Make some noisily increasing data
+set.seed(955)
+dat <- data.frame(cond = rep(c("A", "B"), each=10),
+                  xvar = 1:20 + rnorm(20,sd=3),
+                  yvar = 1:20 + rnorm(20,sd=3))
+```
+
+geom_point
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Scatter Chart with geom_point
+
+```{r}
+p <- ggplot(dat, aes(x=xvar, y=yvar)) +
+            geom_point(shape=1)      # Use hollow circles
+ggplotly(p)
+```
+
+
+### geom_smooth Linear Regression
+
+```{r}
+p <- ggplot(dat, aes(x=xvar, y=yvar)) +
+            geom_point(shape=1) +    # Use hollow circles
+            geom_smooth(method=lm)   # Add linear regression line
+ggplotly(p)
+```
+
+Row
+-----------------------------------------------------------------------
+
+### geom_smooth with Loess Smoothed Fit
+
+```{r}
+p <- ggplot(dat, aes(x=xvar, y=yvar)) +
+            geom_point(shape=1) +    # Use hollow circles
+            geom_smooth()            # Add a loess smoothed fit curve with confidence region
+ggplotly(p)
+```
+
+### Constraining Slope with stat_smooth
+
+```{r}
+n <- 20
+x1 <- rnorm(n); x2 <- rnorm(n)
+y1 <- 2 * x1 + rnorm(n)
+y2 <- 3 * x2 + (2 + rnorm(n))
+A <- as.factor(rep(c(1, 2), each = n))
+df <- data.frame(x = c(x1, x2), y = c(y1, y2), A = A)
+fm <- lm(y ~ x + A, data = df)
+
+p <- ggplot(data = cbind(df, pred = predict(fm)), aes(x = x, y = y, color = A))
+p <- p + geom_point() + geom_line(aes(y = pred))
+ggplotly(p)
+```
+
+
+</div>
+
+<iframe src="about:blank"></iframe>
+
+</body>
+</html>

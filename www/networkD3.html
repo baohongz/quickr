@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>QuickR App</title>
+
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<style type="text/css" media="screen">
+ 
+iframe { 
+  z-index: 999999;
+}
+
+</style>
+<script src="assets/js/underscore-min.js"></script>    
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+  var editor;
+  var resultHTML;
+
+  function domarkdown(e){
+    var req = ocpu.call("rmdtext", {
+      text : editor.getSession().getValue()
+    }, function(session){
+console.log(session);
+      resultHTML = session.getFileURL("output.html");
+	  $("iframe").attr('src', resultHTML);
+
+    }).fail(function(text){
+      alert("Error: " + req.responseText);
+    });
+  }
+
+$(function(){
+
+  editor = ace.edit("coding");
+  editor.setTheme("ace/theme/monokai");
+  editor.getSession().setMode("ace/mode/r");
+  editor.getSession().setUseWrapMode(true);
+  editor.setFontSize("14px");
+
+
+  //This app requires OpenCPU 1.0.1 or higher!
+  
+
+  //auto run after 2 seconds of no activity
+  var update = _.debounce(domarkdown, 2000);
+  
+  //register event
+//  editor.on("change", update);
+  
+  //init on start
+//  domarkdown();  
+
+
+});
+
+
+
+</script>
+
+
+</head>
+<body>
+
+
+&nbsp;<button class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button>
+&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button>
+
+<div class="panel-container">
+            <div id=coding class="panel-left">
+
+---
+title: "R Markdown networkD3"
+output: 
+  html_document:
+    toc: true
+---
+
+## simpleNetwork
+
+```{r}
+library(networkD3)
+src <- c("A", "A", "A", "A", "B", "B", "C", "C", "D")
+target <- c("B", "C", "D", "J", "E", "F", "G", "H", "I")
+networkData <- data.frame(src, target)
+simpleNetwork(networkData)
+```
+
+
+## forceNetwork
+
+```{r}
+data(MisLinks)
+data(MisNodes)
+forceNetwork(Links = MisLinks, Nodes = MisNodes, Source = "source",
+             Target = "target", Value = "value", NodeID = "name",
+             Group = "group", opacity = 0.4)
+```
+
+
+# sankeyNetwork
+
+```{r}
+URL <- "https://raw.githubusercontent.com/christophergandrud/d3Network/sankey/JSONdata/energy.json"
+Energy <- jsonlite::fromJSON(URL)
+sankeyNetwork(Links = Energy$links, Nodes = Energy$nodes, Source = "source",
+             Target = "target", Value = "value", NodeID = "name",
+             units = "TWh", fontSize = 12, nodeWidth = 30)
+```
+
+# diagonalNetwork
+
+```{r}
+Flare <- RCurl::getURL("https://gist.githubusercontent.com/mbostock/4063550/raw/a05a94858375bd0ae023f6950a2b13fac5127637/flare.json")
+Flare <- rjson::fromJSON(Flare)
+diagonalNetwork(List = Flare, fontSize = 10, opacity = 0.9, margin=0)
+```
+
+# radialNetwork
+
+```{r}
+Flare <- RCurl::getURL("https://gist.githubusercontent.com/mbostock/4063550/raw/a05a94858375bd0ae023f6950a2b13fac5127637/flare.json")
+Flare <- rjson::fromJSON(Flare)
+radialNetwork(List = Flare, fontSize = 10, opacity = 0.9, margin=0)
+```
+
+# dendroNetwork
+
+```{r}
+hc <- hclust(dist(USArrests), "ave")
+dendroNetwork(hc, height = 600)
+```
+
+
+            </div>
+
+            <div class="splitter">
+            </div>
+
+            <div class="panel-right">
+<iframe id=result width=100% height=100% name=result src=""></iframe>
+            </div>
+</div>
+
+<script>
+	$(".panel-left").resizable({
+	   handleSelector: ".splitter",
+	   resizeHeight:  false,
+	   onDragEnd: function( event, ui ) {editor.resize();}
+	});
+</script>
+
+
+</body>
+</html>

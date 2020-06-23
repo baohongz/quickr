@@ -1,0 +1,52 @@
+<html>
+<head>
+	<title>Call R</title>
+	<script src="jquery-1.10.2.min.js"></script>
+	<script src="opencpu-0.5.js"></script>
+</head>
+<body>
+
+<textarea id="input" rows="10" cols="50">
+	x = rnorm(1000)
+	plot(x)
+	mean(x)  
+</textarea> 
+<br>
+<button id="submitbutton">Call R</button><br>
+
+<pre><code id=output></code></pre>
+
+<script>
+	var $base = "https://public.opencpu.org/ocpu/library/";
+	
+	//call R function: stats::var(x=data)
+	$("#submitbutton").click(function(){
+		ocpu.seturl($base+"base/R")
+
+	    //arguments
+	    var mysnippet = new ocpu.Snippet($("#input").val());
+	    
+	    //disable button
+	    $("button").attr("disabled", "disabled");
+	
+	    //perform the request
+	    var req = ocpu.call("identity", {
+	        "x" : mysnippet
+	    }, function(session){
+	        session.getConsole(function(outtxt){
+	            $("#output").text(outtxt); 
+	        });
+	    });
+	        
+	    //if R returns an error, alert the error message
+	    req.fail(function(){
+	        alert("Server error: " + req.responseText);
+	    });      
+	    
+	    req.always(function(){
+	        $("button").removeAttr("disabled");    
+	    });
+	});
+</script>
+</body>
+</html>
