@@ -122,6 +122,14 @@
 	            foo: 'bar'
 	        }
 	    })
+		var rcommand = $('#code_temp1').text();
+		rcommand = rcommand.replace("annotate.label", "Hello")
+		rcommand = rcommand.replace("annotate.size", "12")
+		rcommand = rcommand.replace("panel.background.fill", "gray")
+		rcommand = rcommand.replace("CATSDATA",'"cat1","cat2","cat3","cat4","cat5","cat6","cat7","cat8","cat9","cat10","cat11"');
+		rcommand = rcommand.replace("FREQDATA",'101,68,34,18,14,5,5,3,2,1,1');
+		
+		editor.getSession().setValue(rcommand);
 	});
 </script>
 </head>
@@ -133,6 +141,7 @@
 	<td>
 	<td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
 	<td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
+	<td><a href="input/donutplot.xlsx">Input Template</a></td>
 	</tr>
 	</table>
 	
