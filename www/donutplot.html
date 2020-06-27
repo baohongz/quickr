@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-<title>Boxplot</title>
+<title>donutplot</title>
 <link rel="stylesheet" href="assets/css/splitter.css">    
 <link rel="stylesheet" href="assets/css/w3.css">    
 <link rel="stylesheet" href="assets/css/sheetjs.css">
@@ -82,34 +82,26 @@
 			alertify.alert('We unfortunately dropped the ball here.  Please test the file using the <a href="/js-xlsx/">raw parser</a>.  If there are issues with the file processor, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can make things right.', function(){});
 		};
 		
-		var _onsheet = function(json, sheetnames, select_sheet_cb) {
-			// console.log(json);
-			var rcommand = '';
-			rcommand += '---\n'+
-			'output:\n'+
-			'  html_document:\n'+
-			'    code_folding: hide\n'+
-			'---\n'+
-			'```{r block2, warning = FALSE, message=FALSE, fig.width=8, fig.height=5, dev="svg"}\n'+
-			'library(ggpubr)\n';
-			
-			rcommand += 'datasheet = data.frame('+json[0][0]+'=c(';
-			for (var i=1; i<json.length; i++) {
-				rcommand += json[i][0].replace(/\"/g,'') + ',';
+		var _onwb = function(workbook, idx) {
+		    var result = {};
+		    workbook.SheetNames.forEach(function(sheetName) {
+		      var roa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw:false, header:1});
+		      if(roa.length > 0) result[sheetName] = roa;
+		    });
+
+			var rcommand = $('#code_temp1').text();
+			for (var i=0;i<result.Setting.length;i++) {
+				rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
 			}
-			rcommand = rcommand.slice(0, -1)+'),\n'+json[0][1]+'=c(';
-			for (var i=1; i<json.length; i++) {
-				rcommand += json[i][1].replace(/\"/g,'') + ',';
+			var CATSDATA ='"';
+			var FREQDATA ="";
+			for (var i=0;i<result.Category.length;i++) {
+				CATSDATA += result.Category[i][0] + '","';
+				FREQDATA += result.Category[i][1] + ',';	
 			}
-			rcommand = rcommand.slice(0, -1)+'))\n';
+			rcommand = rcommand.replace("CATSDATA",CATSDATA.slice(0, -2));
+			rcommand = rcommand.replace("FREQDATA",FREQDATA.slice(0, -1));
 			
-			rcommand += 'my_comp <- combn(levels(factor( datasheet$'+json[0][0]+')), 2,  simplify = FALSE)\n';
-			rcommand += 'ggboxplot(datasheet, x = "'+json[0][0]+'", y = "'+json[0][1]+'",\n'+
-			'  color = "'+json[0][0]+'", palette = "jco")+\n'+
-			'  stat_compare_means(comparisons = my_comp)+\n'+
-			'  stat_compare_means(label.y = 50)\n';
-			
-			console.log(rcommand);
 			editor.getSession().setValue(rcommand);
 		}
 
@@ -119,7 +111,7 @@
 	        on: {
 	            workstart: _workstart,
 	            workend: _workend,
-	            sheet: _onsheet,
+	            wb: _onwb,
 	            foo: 'bar'
 	        },
 	        errors: {
@@ -161,5 +153,35 @@
 			onDragEnd: function( event, ui ) {editor.resize();}
 		});
 	</script>
+
+	<div id=code_temp1 style="display:none;">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, message=FALSE, fig.width=8, fig.height=5, dev='svg'}
+library(ggrepel)
+
+cats <- c(CATSDATA)
+freq <- c(FREQDATA)
+## create data frame
+colour.df <- data.frame(cats, freq)
+
+## calculate percentage
+colour.df$percentage = colour.df$freq / sum(colour.df$freq)* 100
+colour.df = colour.df[rev(order(colour.df$percentage)), ]
+colour.df$ymax = cumsum(colour.df$percentage)
+colour.df$ymin = c(0, head(colour.df$ymax, n = -1))
+
+donut = ggplot(colour.df, aes(fill = cats, ymax = ymax, ymin = ymin, xmax = 100, xmin = 80)) +
+    geom_rect(colour = "black") + coord_polar(theta = "y") + xlim(c(0, 100)) +
+    geom_label_repel(aes(label = paste(round(percentage,2),"%"), x = 100, y = (ymin + ymax)/2),inherit.aes = F, show.legend = F, size = 4) +
+    theme(legend.title = element_text(colour = "black", size = 12, face = "bold"), legend.text = element_text(colour = "black", size = 10), panel.grid = element_blank(), axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank()) +
+	theme(panel.background = element_rect(fill="panel.background.fill")) +
+    annotate("text", x = 0, y = 0, size = annotate.size, label = "annotate.label")
+print(donut)
+	</div>
 </body>
 </html>
