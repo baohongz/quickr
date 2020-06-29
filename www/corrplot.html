@@ -88,13 +88,29 @@
 		      var roa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw:false, header:1});
 		      if(roa.length > 0) result[sheetName] = roa;
 		    });
-console.log(result);
 
+			var supval = {};
+			var worksheet = workbook.Sheets['Setting']
+			for (var i=1;i<100;i++) {
+				if (worksheet['D'+i] === undefined) continue;
+				console.log(worksheet['D'+i].v);	
+				var valstr = '';
+				"EFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(function(letter) {
+					if (worksheet[letter+i] === undefined) return;
+					if (worksheet[letter+i].v.length > 1) {
+						valstr += '"'+worksheet[letter+i].v+'",';
+					} else {
+						valstr += '"'+worksheet[letter+i].s.fill.fgColor.rgb.replace(/^FF/,'#')+'",'; // get color
+					}
+				});
+				supval[worksheet['D'+i].v] = valstr.slice(0,-1);
+			}
+// console.log(result);
 			var rcommand = $('#code_temp1').text();
 			if (result.Setting) {
 				for (var i=0;i<result.Setting.length;i++) {
 					if (result.Setting[i][0] == 'color.ramp.palette') {
-						rcommand = rcommand.replace('color.ramp.palette','diverging_hcl(5, palette = "'+result.Setting[i][1]+'")');
+						rcommand = rcommand.replace(result.Setting[i][0],supval[result.Setting[i][1]]);
 					} else {
 						rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
 					}
@@ -174,7 +190,6 @@ output:
 
 ```{r block2, message=FALSE, fig.width=8, fig.height=5, dev='svg'}
 library(corrplot)
-library(colorspace)
 
 inputstring <- "INPUTSTRING"
 input <- read.csv(text=inputstring, header=TRUE, row.names=1)

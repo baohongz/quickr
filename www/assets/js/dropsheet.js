@@ -84,7 +84,7 @@ var DropSheet = function DropSheet(opts) {
       reader.onload = function(e) {
         var data = e.target.result;
         var wb, arr;
-        var readtype = {type: rABS ? 'binary' : 'base64' };
+        var readtype = {cellStyles: true, type: rABS ? 'binary' : 'base64' };
         if(!rABS) {
           arr = fixdata(data);
           data = btoa(arr);
