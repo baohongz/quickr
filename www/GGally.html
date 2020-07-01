@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-<title>summarytools</title>
+<title>GGally</title>
 <link rel="stylesheet" href="assets/css/splitter.css">    
 <link rel="stylesheet" href="assets/css/w3.css">    
 <link rel="stylesheet" href="assets/css/sheetjs.css">
@@ -126,6 +126,9 @@
 					if (result.Setting[i][0].includes('legend.name')) {
 						result.Setting[i][1]=result.Setting[i][1].replace(/(?![^\n]{1,16}$)([^\n]{1,16})\s/g, '$1\n');
 					}
+					if (result.Setting[i][0].includes('columns.show')) {
+						result.Setting[i][1]=result.Setting[i][1].replace(/ /g,'').replace(/^|$/g, '"').replace(/,/g,'","');
+					}
                     rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
                 }
             }
@@ -160,7 +163,9 @@ console.log(result.Data);
 	        }
 	    })
 		var rcommand = $('#code_temp1').text();
-		rcommand = rcommand.replace('INPUTDATAFRAME','iris');
+		rcommand = rcommand.replace('INPUTDATAFRAME','reshape::tips');
+		rcommand = rcommand.replace('fig.1.width','8').replace('fig.1.height','6');	
+		rcommand = rcommand.replace('color.by','day').replace('columns.show','"total_bill","sex","tip"');
 		editor.getSession().setValue(rcommand);
 	});
 </script>
@@ -173,7 +178,7 @@ console.log(result.Data);
 	<td>
 	<td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
 	<td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
-	<td><a href="input/summarytools.xlsx">Input Template</a></td>
+	<td><a href="input/GGally.xlsx">Input Template</a></td>
 	</tr>
 	</table>
 	
@@ -202,12 +207,19 @@ output:
     code_folding: hide
 ---
 
-```{r, results='asis', warning=FALSE, message=FALSE}
-library(summarytools)
-data <- INPUTDATAFRAME 
-print(descr(data), method = 'render', table.classes = 'st-small')
-print(dfSummary(data, graph.magnif = 0.75), method = 'render')
-
+```{r block2, message=FALSE, fig.width=fig.1.width, fig.height=fig.1.height, dev='svg'}
+library(GGally)
+data <- INPUTDATAFRAME
+gg_3<-ggpairs(data,mapping=aes(color=color.by),
+  columns=c(columns.show),
+  diag=list(continuous=wrap(ggally_densityDiag,alpha=0.7)),
+  legend=c(2,2))
+for(i in 1:gg_3$nrow){
+  for(j in 1:gg_3$ncol){
+    gg_3[i,j]<-gg_3[i,j]+scale_fill_brewer(palette="Set2")+scale_color_brewer(palette="Set2")
+  }
+}
+print(gg_3)
 	</div>
 </body>
 </html>

@@ -64,7 +64,9 @@ $( function() {
         return name.toLowerCase();
       },
       stars: function( itemElem ) {
-        var stars = -parseInt($( itemElem ).find(".gh-count").html());
+//        var stars = -parseInt($( itemElem ).find(".gh-count").html());
+        var stars = -parseInt($( itemElem ).find(".gh-count").text());
+console.log(stars);
         return stars;
       }
     },

@@ -143,7 +143,7 @@ grp <- as.factor(res.km$cluster)
 
 # Color variables by groups
 p <- fviz_pca_var(res.pca, col.var = grp, palette = c("#0073C2FF", "#EFC000FF", "#868686FF"), legend.title = "Cluster")
-# Remove strang "a" from legend
+# Remove strange "a" from legend
 p <- p + guides(color = guide_legend(override.aes = list(alpha = 1, size = 1)))
 p
 
@@ -157,7 +157,7 @@ p <- fviz_add(p, res.pca$quali.sup$coord, color = "red")
 p
 
 p <- fviz_pca_ind(res.pca, habillage = 13, addEllipses =TRUE, ellipse.type = "confidence", palette = "jco", repel = TRUE) 
-# Remove strang "a" from legend
+# Remove strange "a" from legend
 p <- p + guides(color = guide_legend(override.aes = list(label="")))
 p
 
