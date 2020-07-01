@@ -164,7 +164,7 @@ console.log(result.Data);
 		rcommand = rcommand.replace('fig.1.width','8').replace('fig.1.height','5');
 		rcommand = rcommand.replace('x.axis','Medgrowth').replace('y.axis','Medunemp');
 		rcommand = rcommand.replace('size.by','Empsize').replace('label.by','Names').replace('fill.by','Eduratio');
-		rcommand = rcommand.replace('size.by.legend.name','Employment in\n2012 (thousands)').replace('file.by.legend.name','Per cent with\ntertiary degree');
+		rcommand = rcommand.replace('size.by.legend.name','Employment in\n2012 (thousands)').replace('fill.by.legend.name','Per cent with\ntertiary degree');
 		rcommand = rcommand.replace('x.label','Median employment growth rate 2001 - 2012').replace('y.label','Median unemployment rate 2001 - 2012');
 		rcommand = rcommand.replace('axis.title.x.theme', 'face="bold"');
 		rcommand = rcommand.replace('axis.title.y.theme', 'face="bold"');
@@ -219,7 +219,7 @@ plot = ggplot(dataframe, aes(x = x.axis, y = y.axis, size = size.by, label = lab
   geom_point(shape=21, alpha=0.5) + 
   geom_text_repel(size = 4, colour = "black") + 
   scale_size_area(max_size=15,name = "size.by.legend.name") +
-  scale_fill_gradientn(colors = c(scale.fill.gradientn.color), name="file.by.legend.name") +
+  scale_fill_gradientn(colors = c(scale.fill.gradientn.color), name="fill.by.legend.name") +
   xlab("x.label") + ylab("y.label") +
   theme(axis.title.x=element_text(axis.title.x.theme),axis.title.y=element_text(axis.title.y.theme)
 )
