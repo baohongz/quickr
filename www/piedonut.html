@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>bubbleplot</title>
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/sheetjs.css">
+<link rel="stylesheet" href="assets/vendor/alertify.css">
+<style type="text/css" media="screen">
+    iframe { z-index: 999999; }
+</style>
+
+<script src="assets/js/shim.js"></script>
+<script src="assets/js/xlsx.full.min.js"></script>
+<script src="assets/js/dropsheet.js"></script>
+<script src="assets/vendor/spin.js"></script>
+<script src="assets/vendor/alertify.js"></script>
+<script src="assets/js/underscore-min.js"></script>
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+    var editor;
+    var resultHTML;
+
+    function domarkdown(e){
+        var spinner1 = new Spinner().spin(document.getElementById('resultdiv'));    
+        $('#runbtn').prop('disabled', true);
+        var req = ocpu.call("rmdtext", {
+            text : editor.getSession().getValue()
+        }, function(session){
+            console.log(session);
+            resultHTML = session.getFileURL("output.html");
+            $("iframe").attr('src', resultHTML);
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+        }).fail(function(text){
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+            alert("Error: " + req.responseText);
+        });
+    }
+
+    $(function(){
+        editor = ace.edit("coding");
+        editor.setTheme("ace/theme/iplastic");
+        editor.getSession().setMode("ace/mode/r");
+        editor.getSession().setUseWrapMode(true);
+        editor.setFontSize("14px");
+
+        
+        /* oss.sheetjs.com (C) 2014-present SheetJS -- http://sheetjs.com */
+        /* vim: set ts=2: */
+        
+        /** drop target **/
+        var _target = document.getElementById('drop');
+        var _file = document.getElementById('file');
+        var _grid = document.getElementById('grid');
+        var spinner;
+        
+        
+        var _workstart = function() { spinner = new Spinner().spin(_target); }
+        var _workend = function() { spinner.stop(); }
+        
+        /** Alerts **/
+        var _badfile = function() {
+            alertify.alert('This file does not appear to be a valid Excel file.  If we made a mistake, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can take a look.', function(){});
+        };
+        var _pending = function() {
+            alertify.alert('Please wait until the current file is processed.', function(){});
+        };
+        var _large = function(len, cb) {
+            alertify.confirm("This file is " + len + " bytes and may take a few moments.  Your browser may lock up during this process.  Shall we play?", cb);
+        };
+        var _failed = function(e) {
+            console.log(e, e.stack);
+            alertify.alert('We unfortunately dropped the ball here.  Please test the file using the <a href="/js-xlsx/">raw parser</a>.  If there are issues with the file processor, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can make things right.', function(){});
+        };
+        
+        var _onwb = function(workbook, idx) {
+            var result = {};
+            workbook.SheetNames.forEach(function(sheetName) {
+              var roa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw:false, header:1});
+              if(roa.length > 0) result[sheetName] = roa;
+            });
+            var supval = {};
+            var worksheet = workbook.Sheets['Setting']
+            for (var i=1;i<100;i++) {
+                if (worksheet['A'+i] !== undefined && worksheet['A'+i].v.trim().length>0 && worksheet['A'+i].v.includes('theme')) {
+                    var valstr = '';
+                    var font = worksheet['B'+i].s.font;
+                    if (font.color != null) valstr += 'color="'+font.color.rgb.replace(/^FF/,'#')+'"';
+                    if (font.sz != null) valstr += ', size='+font.sz;
+                    if (font.bold != null) {
+                        valstr += ', face="bold"';
+                        if (font.italic != null) valstr = valstr.slice(0,-1)+'.italic"';
+                    } else {
+                        if (font.italic != null) valstr += ', face="italic"';
+                    }
+                    result.Setting[i-1][1] = valstr;    
+                }
+                if (worksheet['D'+i] === undefined || worksheet['D'+i].v.trim().length<1) continue;
+                console.log(worksheet['D'+i].v);
+                var valstr = '';
+                "EFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(function(letter) {
+                    if (worksheet[letter+i] === undefined) return;
+                    if (worksheet[letter+i].v.trim().length > 0) {
+                        valstr += '"'+worksheet[letter+i].v+'",';
+                    } else {
+                        valstr += '"'+worksheet[letter+i].s.fill.fgColor.rgb.replace(/^FF/,'#')+'",'; // get color
+                    }
+                });
+                supval[worksheet['D'+i].v] = valstr.slice(0,-1);
+            }
+
+
+            var rcommand = $('#code_temp1').text();
+            if (result.Setting) {
+                for (var i=0;i<result.Setting.length;i++) {
+                    if (supval[result.Setting[i][1]] != null) result.Setting[i][1] = supval[result.Setting[i][1]];
+                    if (result.Setting[i][0].includes('legend.name')) {
+                        result.Setting[i][1]=result.Setting[i][1].replace(/(?![^\n]{1,16}$)([^\n]{1,16})\s/g, '$1\n');
+                    }
+                    rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
+                }
+            }
+
+console.log(result.Data);
+            var INPUTSTRING = '';
+            for (var i=0;i<result.Data.length;i++) {
+                for (var j=0;j<result.Data[i].length;j++) {
+                    INPUTSTRING += result.Data[i][j]+',';
+                }
+                INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
+            }
+            rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE, row.names=1)');
+            editor.getSession().setValue(rcommand);
+        }
+
+        DropSheet({
+            file: _file,
+            drop: _target,
+            on: {
+                workstart: _workstart,
+                workend: _workend,
+                wb: _onwb,
+                foo: 'bar'
+            },
+            errors: {
+                badfile: _badfile,
+                pending: _pending,
+                failed: _failed,
+                large: _large,
+                foo: 'bar'
+            }
+        })
+        var rcommand = $('#code_temp1').text();
+        rcommand = rcommand.replace('INPUTDATAFRAME','structure(list(Medgrowth = c(-1.02232983588915, 3.01155115511551,-0.220617729642996, 1.96506550218342, 0.943970767356888, 0.810810810810807,0.0166694449074782, 0.21064457239153, 0.0876731544801004, 0.132216835610393,0.370644922164558,0.23378141437756, 1.27810650887574, 0.42301184433164,0.394880174291941, 0.54216172568924, 1.32690882134916, 0.499722376457527,-0.108885017421599), Medunemp = c(4.430550475, 2.5060469975,4.1239796475, 2.0585977455, 3.846659243, 3.1792594425, 4.0033450105,6.0882984255, 3.091889808,3.7462810695, 2.4038147815, 3.0065393475,2.3331894185, 4.9482480125, 2.0955470885, 1.616694725, 1.873037069,3.060170157, 3.0131425595), Empsize = c(324.2,270.6, 962.1,149, 962.4, 421.1, 1197.8, 777.8, 552.8, 234.8, 421.1, 203.2,915.7, 396.1, 685.9, 904.5, 1366.9, 215.4, 440.5), Eduratio = c(0.1,0.2, 0.1, 0.2, 0.1, 0.2, 0.1, 0.1, 0.1, 0.3, 0.3, 0.2, 0.5, 0.2,0.3, 0.6, 0.4, 0.2, 0.1), Names = structure(c(3L, 12L, 11L, 7L,5L, 19L, 17L, 1L, 18L, 10L, 8L, 16L, 14L, 2L, 15L, 6L, 9L, 4L,13L), .Label = c("Accom", "Admin","Agric", "Arts.", "Const","Educa", "Elect", "Finan", "Healt","Infor","Manuf","Minin","Other", "Profe", "Publi", "Renta", "Retai", "Trans", "Whole"), class = "factor")),  .Names = c("Medgrowth","Medunemp", "Empsize", "Eduratio", "Names"), row.names = c("Agric","Minin", "Manuf", "Elect", "Const", "Whole", "Retai", "Accom","Trans", "Infor", "Finan", "Renta", "Profe", "Admin", "Publi","Educa", "Healt", "Arts.", "Other"), class = "data.frame")');
+        rcommand = rcommand.replace('fig.1.width','8').replace('fig.1.height','5');
+        rcommand = rcommand.replace('x.axis','Medgrowth').replace('y.axis','Medunemp');
+        rcommand = rcommand.replace('size.by','Empsize').replace('label.by','Names').replace('fill.by','Eduratio');
+        rcommand = rcommand.replace('size.by.legend.name','Employment in\n2012 (thousands)').replace('fill.by.legend.name','Per cent with\ntertiary degree');
+        rcommand = rcommand.replace('x.label','Median employment growth rate 2001 - 2012').replace('y.label','Median unemployment rate 2001 - 2012');
+        rcommand = rcommand.replace('axis.title.x.theme', 'face="bold"');
+        rcommand = rcommand.replace('axis.title.y.theme', 'face="bold"');
+        rcommand = rcommand.replace('scale.fill.gradientn.color','"#00AFBB", "#E7B800", "#FC4E07"');
+        editor.getSession().setValue(rcommand);
+    });
+</script>
+</head>
+
+<body>
+    <table width=100% border=0>
+    <tr>
+    <td width=60%><div id="drop" style="width:100%;">Drop a file here or <input type="file" id="file" value=""/></div></td>
+    <td>
+    <td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
+    <td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
+    <td><a href="input/bubbleplot.xlsx">Input Template</a></td>
+    </tr>
+    </table>
+    
+    <div class="panel-container">
+        <div id=coding class="panel-left"> </div>
+        
+        <div class="splitter"> </div>
+        
+        <div id="resultdiv" class="panel-right">
+            <iframe id=result width=100% height=100% name=result src=""></iframe>
+        </div>
+    </div>
+    
+    <script>
+        $(".panel-left").resizable({
+            handleSelector: ".splitter",
+            resizeHeight:  false,
+            onDragEnd: function( event, ui ) {editor.resize();}
+        });
+    </script>
+
+    <div id=code_temp1 style="display:none;">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, message=FALSE, fig.width=fig.1.width, fig.height=fig.1.height, dev='svg'}
+## packages
+library(ggplot2)
+library(moonBook)
+library(webr)
+
+PieDonut(acs,aes(pies=Dx,donuts=smoking))
+
+    </div>
+</body>
+</html>
