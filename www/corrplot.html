@@ -109,6 +109,7 @@
 			var rcommand = $('#code_temp1').text();
 			if (result.Setting) {
 				for (var i=0;i<result.Setting.length;i++) {
+					if (result.Setting[i][0] == null || result.Setting[i][0].trim().length<1) break;	
 					if (supval[result.Setting[i][1]] != null) result.Setting[i][1] = supval[result.Setting[i][1]];
 					rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
 				}

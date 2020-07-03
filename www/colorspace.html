@@ -81,6 +81,16 @@ hcl_palettes(plot = TRUE)
 
 display.brewer.all()
 
+pal.list <- row.names(brewer.pal.info)
+for (i in 1:length(pal.list)) {
+    pal.name <- pal.list[i]
+    color.num <- brewer.pal.info[pal.name,]$maxcolors
+
+    color.codes <- brewer.pal(color.num,pal.name)
+    print(pal.name)
+    print(color.codes)
+}
+
 df <- iris[1:18, ]
 df$number <- 1:nrow(df)
 

@@ -91,13 +91,14 @@
 
 			var rcommand = $('#code_temp1').text();
 			for (var i=0;i<result.Setting.length;i++) {
+				if (result.Setting[i][0] == null || result.Setting[i][0].trim().length<1) break;	
 				rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
 			}
 			var CATSDATA ='"';
 			var FREQDATA ="";
-			for (var i=0;i<result.Category.length;i++) {
-				CATSDATA += result.Category[i][0] + '","';
-				FREQDATA += result.Category[i][1] + ',';	
+			for (var i=0;i<result.Data.length;i++) {
+				CATSDATA += result.Data[i][0] + '","';
+				FREQDATA += result.Data[i][1] + ',';	
 			}
 			rcommand = rcommand.replace("CATSDATA",CATSDATA.slice(0, -2));
 			rcommand = rcommand.replace("FREQDATA",FREQDATA.slice(0, -1));
