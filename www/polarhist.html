@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>polarhist</title>
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/sheetjs.css">
+<link rel="stylesheet" href="assets/vendor/alertify.css">
+<style type="text/css" media="screen">
+    iframe { z-index: 999999; }
+</style>
+
+<script src="assets/js/shim.js"></script>
+<script src="assets/js/xlsx.full.min.js"></script>
+<script src="assets/js/dropsheet.js"></script>
+<script src="assets/vendor/spin.js"></script>
+<script src="assets/vendor/alertify.js"></script>
+<script src="assets/js/underscore-min.js"></script>
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+    var editor;
+    var resultHTML;
+
+    function domarkdown(e){
+        var spinner1 = new Spinner().spin(document.getElementById('resultdiv'));    
+        $('#runbtn').prop('disabled', true);
+        var req = ocpu.call("rmdtext", {
+            text : editor.getSession().getValue()
+        }, function(session){
+            console.log(session);
+            resultHTML = session.getFileURL("output.html");
+            $("iframe").attr('src', resultHTML);
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+        }).fail(function(text){
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+            alert("Error: " + req.responseText);
+        });
+    }
+
+    $(function(){
+        editor = ace.edit("coding");
+        editor.setTheme("ace/theme/iplastic");
+        editor.getSession().setMode("ace/mode/r");
+        editor.getSession().setUseWrapMode(true);
+        editor.setFontSize("14px");
+
+        
+        /* oss.sheetjs.com (C) 2014-present SheetJS -- http://sheetjs.com */
+        /* vim: set ts=2: */
+        
+        /** drop target **/
+        var _target = document.getElementById('drop');
+        var _file = document.getElementById('file');
+        var _grid = document.getElementById('grid');
+        var spinner;
+        
+        
+        var _workstart = function() { spinner = new Spinner().spin(_target); }
+        var _workend = function() { spinner.stop(); }
+        
+        /** Alerts **/
+        var _badfile = function() {
+            alertify.alert('This file does not appear to be a valid Excel file.  If we made a mistake, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can take a look.', function(){});
+        };
+        var _pending = function() {
+            alertify.alert('Please wait until the current file is processed.', function(){});
+        };
+        var _large = function(len, cb) {
+            alertify.confirm("This file is " + len + " bytes and may take a few moments.  Your browser may lock up during this process.  Shall we play?", cb);
+        };
+        var _failed = function(e) {
+            console.log(e, e.stack);
+            alertify.alert('We unfortunately dropped the ball here.  Please test the file using the <a href="/js-xlsx/">raw parser</a>.  If there are issues with the file processor, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can make things right.', function(){});
+        };
+        
+        var _onwb = function(workbook, idx) {
+            var result = {};
+            workbook.SheetNames.forEach(function(sheetName) {
+              var roa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw:false, header:1});
+              if(roa.length > 0) result[sheetName] = roa;
+            });
+            var supval = {};
+            var worksheet = workbook.Sheets['Setting']
+            for (var i=1;i<100;i++) {
+                if (worksheet['A'+i] !== undefined && worksheet['A'+i].v.trim().length>0 && worksheet['A'+i].v.includes('theme')) {
+                    var valstr = '';
+                    var font = worksheet['B'+i].s.font;
+                    if (font.color != null) valstr += 'color="'+font.color.rgb.replace(/^FF/,'#')+'"';
+                    if (font.sz != null) valstr += ', size='+font.sz;
+                    if (font.bold != null) {
+                        valstr += ', face="bold"';
+                        if (font.italic != null) valstr = valstr.slice(0,-1)+'.italic"';
+                    } else {
+                        if (font.italic != null) valstr += ', face="italic"';
+                    }
+                    result.Setting[i-1][1] = valstr;    
+                }
+                if (worksheet['D'+i] === undefined || worksheet['D'+i].v.trim().length<1) continue;
+                console.log(worksheet['D'+i].v);
+                var valstr = '';
+                "EFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(function(letter) {
+                    if (worksheet[letter+i] === undefined) return;
+                    if (worksheet[letter+i].v.trim().length > 0) {
+                        valstr += '"'+worksheet[letter+i].v+'",';
+                    } else {
+                        valstr += '"'+worksheet[letter+i].s.fill.fgColor.rgb.replace(/^FF/,'#')+'",'; // get color
+                    }
+                });
+                supval[worksheet['D'+i].v] = valstr.slice(0,-1);
+            }
+
+
+            var rcommand = $('#code_temp1').text();
+            if (result.Setting) {
+                for (var i=0;i<result.Setting.length;i++) {
+					if (result.Setting[i][0] == null || result.Setting[i][0].trim().length<1) break;
+//                    if (supval[result.Setting[i][1]] != null) result.Setting[i][1] = supval[result.Setting[i][1]];
+                    if (result.Setting[i][0].includes('legend.name')) {
+                        result.Setting[i][1]=result.Setting[i][1].replace(/(?![^\n]{1,16}$)([^\n]{1,16})\s/g, '$1\n');
+                    }
+                    rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
+                }
+            }
+
+console.log(result.Data);
+            var INPUTSTRING = '';
+            for (var i=0;i<result.Data.length;i++) {
+                for (var j=0;j<result.Data[i].length;j++) {
+                    INPUTSTRING += result.Data[i][j]+',';
+                }
+                INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
+            }
+            rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE)');
+            editor.getSession().setValue(rcommand);
+        }
+
+        DropSheet({
+            file: _file,
+            drop: _target,
+            on: {
+                workstart: _workstart,
+                workend: _workend,
+                wb: _onwb,
+                foo: 'bar'
+            },
+            errors: {
+                badfile: _badfile,
+                pending: _pending,
+                failed: _failed,
+                large: _large,
+                foo: 'bar'
+            }
+        })
+        var rcommand = $('#code_temp1').text();
+        rcommand = rcommand.replace('INPUTDATAFRAME','read.csv(text="family,item,score,value\ndemet,fam,V1,204.57\ndemet,fam,V2,45.46\ndemet,fam,V3,399.3\nbhcza,nei,V1,179.89\nbhcza,nei,V2,20.24\nbhcza,nei,V3,20.54\nbhcza,wpz,V1,477.22\nbhcza,wpz,V2,186.67\nbhcza,wpz,V3,403.21\nbhcza,kjj,V1,455.03\nbhcza,kjj,V2,220.04\nbhcza,kjj,V3,288.17\nbhcza,xay,V1,36.83\nbhcza,xay,V2,82.31\nbhcza,xay,V3,369.95\nbhcza,ysq,V1,237.86\nbhcza,ysq,V2,342.76\nbhcza,ysq,V3,475.76\njxkov,nno,V1,248.73\njxkov,nno,V2,235.25\njxkov,nno,V3,280.1\nzhddv,fxo,V1,326.26\nzhddv,fxo,V2,139.79\nzhddv,fxo,V3,489.95\nrmedb,kep,V1,321.93\nrmedb,kep,V2,291.29\nrmedb,kep,V3,307.94\nrmedb,qvq,V1,462.57\nrmedb,qvq,V2,195.01\nrmedb,qvq,V3,143.96\nyzphw,krw,V1,447.95\nyzphw,krw,V2,225.07\nyzphw,krw,V3,447.07\nyzphw,bzj,V1,124.27\nyzphw,bzj,V2,41.85\nyzphw,bzj,V3,24.32\nyzphw,dto,V1,489.91\nyzphw,dto,V2,242.08\nyzphw,dto,V3,422.7", header=TRUE)')
+		rcommand = rcommand.replace("family.label",'FALSE');
+		rcommand = rcommand.replace("fill.palette",'Set1');
+        editor.getSession().setValue(rcommand);
+    });
+</script>
+</head>
+
+<body>
+    <table width=100% border=0>
+    <tr>
+    <td width=60%><div id="drop" style="width:100%;">Drop a file here or <input type="file" id="file" value=""/></div></td>
+    <td>
+    <td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
+    <td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
+    <td><a href="input/polarhist.xlsx">Input Template</a></td>
+    </tr>
+    </table>
+    
+    <div class="panel-container">
+        <div id=coding class="panel-left"> </div>
+        
+        <div class="splitter"> </div>
+        
+        <div id="resultdiv" class="panel-right">
+            <iframe id=result width=100% height=100% name=result src=""></iframe>
+        </div>
+    </div>
+    
+    <script>
+        $(".panel-left").resizable({
+            handleSelector: ".splitter",
+            resizeHeight:  false,
+            onDragEnd: function( event, ui ) {editor.resize();}
+        });
+    </script>
+
+    <div id=code_temp1 style="display:none;">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, warning=FALSE, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
+library(phenotypicForest)
+library(ggplot2)
+
+inputdata <- INPUTDATAFRAME
+p <- polarHistogram(inputdata, familyLabel = family.label)
+p <- p + scale_fill_brewer(palette = "fill.palette", type = "qual")
+print(p)
+    </div>
+</body>
+</html>
