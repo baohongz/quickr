@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>bubbleplot</title>
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/sheetjs.css">
+<link rel="stylesheet" href="assets/vendor/alertify.css">
+<style type="text/css" media="screen">
+    iframe { z-index: 999999; }
+</style>
+
+<script src="assets/js/shim.js"></script>
+<script src="assets/js/xlsx.full.min.js"></script>
+<script src="assets/js/dropsheet.js"></script>
+<script src="assets/vendor/spin.js"></script>
+<script src="assets/vendor/alertify.js"></script>
+<script src="assets/js/underscore-min.js"></script>
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+    var editor;
+    var resultHTML;
+
+    function domarkdown(e){
+        var spinner1 = new Spinner().spin(document.getElementById('resultdiv'));    
+        $('#runbtn').prop('disabled', true);
+        var req = ocpu.call("rmdtext", {
+            text : editor.getSession().getValue()
+        }, function(session){
+            console.log(session);
+            resultHTML = session.getFileURL("output.html");
+            $("iframe").attr('src', resultHTML);
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+        }).fail(function(text){
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+            alert("Error: " + req.responseText);
+        });
+    }
+
+    $(function(){
+        editor = ace.edit("coding");
+        editor.setTheme("ace/theme/iplastic");
+        editor.getSession().setMode("ace/mode/r");
+        editor.getSession().setUseWrapMode(true);
+        editor.setFontSize("14px");
+
+        
+        /* oss.sheetjs.com (C) 2014-present SheetJS -- http://sheetjs.com */
+        /* vim: set ts=2: */
+        
+        /** drop target **/
+        var _target = document.getElementById('drop');
+        var _file = document.getElementById('file');
+        var _grid = document.getElementById('grid');
+        var spinner;
+        
+        
+        var _workstart = function() { spinner = new Spinner().spin(_target); }
+        var _workend = function() { spinner.stop(); }
+        
+        /** Alerts **/
+        var _badfile = function() {
+            alertify.alert('This file does not appear to be a valid Excel file.  If we made a mistake, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can take a look.', function(){});
+        };
+        var _pending = function() {
+            alertify.alert('Please wait until the current file is processed.', function(){});
+        };
+        var _large = function(len, cb) {
+            alertify.confirm("This file is " + len + " bytes and may take a few moments.  Your browser may lock up during this process.  Shall we play?", cb);
+        };
+        var _failed = function(e) {
+            console.log(e, e.stack);
+            alertify.alert('We unfortunately dropped the ball here.  Please test the file using the <a href="/js-xlsx/">raw parser</a>.  If there are issues with the file processor, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can make things right.', function(){});
+        };
+        
+        var _onwb = function(workbook, idx) {
+            var result = {};
+            workbook.SheetNames.forEach(function(sheetName) {
+              var roa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw:false, header:1});
+              if(roa.length > 0) result[sheetName] = roa;
+            });
+            var supval = {};
+            var worksheet = workbook.Sheets['Setting']
+            for (var i=1;i<100;i++) {
+                if (worksheet['A'+i] !== undefined && worksheet['A'+i].v.trim().length>0 && worksheet['A'+i].v.includes('theme')) {
+                    var valstr = '';
+                    var font = worksheet['B'+i].s.font;
+                    if (font.color != null) valstr += 'color="'+font.color.rgb.replace(/^FF/,'#')+'"';
+                    if (font.sz != null) valstr += ', size='+font.sz;
+                    if (font.bold != null) {
+                        valstr += ', face="bold"';
+                        if (font.italic != null) valstr = valstr.slice(0,-1)+'.italic"';
+                    } else {
+                        if (font.italic != null) valstr += ', face="italic"';
+                    }
+                    result.Setting[i-1][1] = valstr;    
+                }
+                if (worksheet['D'+i] === undefined || worksheet['D'+i].v.trim().length<1) continue;
+                console.log(worksheet['D'+i].v);
+                var valstr = '';
+                "EFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(function(letter) {
+                    if (worksheet[letter+i] === undefined) return;
+                    if (worksheet[letter+i].v.trim().length > 0) {
+                        valstr += '"'+worksheet[letter+i].v+'",';
+                    } else {
+                        valstr += '"'+worksheet[letter+i].s.fill.fgColor.rgb.replace(/^FF/,'#')+'",'; // get color
+                    }
+                });
+                supval[worksheet['D'+i].v] = valstr.slice(0,-1);
+            }
+
+
+            var rcommand = $('#code_temp1').text();
+            if (result.Setting) {
+                for (var i=0;i<result.Setting.length;i++) {
+					if (result.Setting[i][0] == null || result.Setting[i][0].trim().length<1) break;	
+                    if (supval[result.Setting[i][1]] != null) result.Setting[i][1] = supval[result.Setting[i][1]];
+                    if (result.Setting[i][0].includes('legend.name')) {
+                        result.Setting[i][1]=result.Setting[i][1].replace(/(?![^\n]{1,16}$)([^\n]{1,16})\s/g, '$1\n');
+                    }
+					if (result.Setting[i][0].includes('group.by')) {
+						result.Setting[i][1]='paste('+result.Setting[i][1]+')';
+					}
+                    rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
+                }
+            }
+
+// console.log(result.Data);
+            var INPUTSTRING = '';
+            for (var i=0;i<result.Data.length;i++) {
+                for (var j=0;j<result.Data[i].length;j++) {
+                    INPUTSTRING += result.Data[i][j]+',';
+                }
+                INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
+            }
+            rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE)');
+            editor.getSession().setValue(rcommand);
+        }
+
+        DropSheet({
+            file: _file,
+            drop: _target,
+            on: {
+                workstart: _workstart,
+                workend: _workend,
+                wb: _onwb,
+                foo: 'bar'
+            },
+            errors: {
+                badfile: _badfile,
+                pending: _pending,
+                failed: _failed,
+                large: _large,
+                foo: 'bar'
+            }
+        })
+        var rcommand = $('#code_temp1').text();
+        rcommand = rcommand.replace('INPUTDATAFRAME','read.csv(text="Character,Year,Total\nFemale,1980,7\nFemale,1980,5\nFemale,1980,5\nFemale,1980,7\nFemale,1980,3\nFemale,1980,5\nFemale,1980,2\nFemale,1980,2\nFemale,1980,6\nFemale,1980,14\nFemale,1980,10\nFemale,1980,4\nFemale,1981,10\nFemale,1981,4\nFemale,1981,11\nFemale,1981,9\nFemale,1981,4\nFemale,1981,9\nFemale,1981,6\nFemale,1981,5\nFemale,1981,8\nFemale,1981,5\nFemale,1981,4\nFemale,1981,14\nFemale,1982,4\nFemale,1982,4\nFemale,1982,10\nFemale,1982,5\nFemale,1982,5\nFemale,1982,13\nFemale,1982,9\nFemale,1982,4\nFemale,1982,7\nFemale,1982,6\nFemale,1982,8\nFemale,1982,8\nFemale,1983,7\nFemale,1983,9\nFemale,1983,3\nFemale,1983,8\nFemale,1983,11\nFemale,1983,2\nFemale,1983,12\nFemale,1983,19\nFemale,1983,13\nFemale,1983,14\nFemale,1983,13\nFemale,1983,7\nFemale,1984,11\nFemale,1984,6\nFemale,1984,6\nFemale,1984,9\nFemale,1984,8\nFemale,1984,12\nFemale,1984,12\nFemale,1984,9\nFemale,1984,6\nFemale,1984,5\nFemale,1984,8\nFemale,1984,9\nFemale,1985,3\nFemale,1985,11\nFemale,1985,6\nFemale,1985,5\nFemale,1985,6\nFemale,1985,6\nFemale,1985,7\nFemale,1985,14\nFemale,1985,8\nFemale,1985,15\nFemale,1985,12\nFemale,1985,15\nFemale,1986,10\nFemale,1986,11\nFemale,1986,16\nFemale,1986,8\nFemale,1986,5\nFemale,1986,10\nFemale,1986,2\nFemale,1986,10\nFemale,1986,4\nFemale,1986,8\nFemale,1986,10\nFemale,1986,9\nFemale,1987,11\nFemale,1987,19\nFemale,1987,13\nFemale,1987,9\nFemale,1987,6\nFemale,1987,6\nFemale,1987,10\nFemale,1987,10\nFemale,1987,6\nFemale,1987,6\nFemale,1987,11\nFemale,1987,25\nFemale,1988,19\nFemale,1988,4\nFemale,1988,12\nFemale,1988,12\nFemale,1988,9\nFemale,1988,10\nFemale,1988,13\nFemale,1988,12\nFemale,1988,20\nFemale,1988,28\nFemale,1988,15\nFemale,1988,14\nFemale,1989,21\nFemale,1989,15\nFemale,1989,9\nFemale,1989,8\nFemale,1989,10\nFemale,1989,15\nFemale,1989,15\nFemale,1989,20\nFemale,1989,15\nFemale,1989,8\nFemale,1989,17\nFemale,1989,21\nFemale,1990,9\nFemale,1990,13\nFemale,1990,7\nFemale,1990,11\nFemale,1990,22\nFemale,1990,6\nFemale,1990,17\nFemale,1990,11\nFemale,1990,12\nFemale,1990,11\nFemale,1990,10\nFemale,1990,16\nFemale,1991,13\nFemale,1991,7\nFemale,1991,14\nFemale,1991,9\nFemale,1991,10\nFemale,1991,12\nFemale,1991,16\nFemale,1991,12\nFemale,1991,16\nFemale,1991,11\nFemale,1991,11\nFemale,1991,10\nFemale,1992,16\nFemale,1992,13\nFemale,1992,12\nFemale,1992,11\nFemale,1992,7\nFemale,1992,24\nFemale,1992,21\nFemale,1992,12\nFemale,1992,12\nFemale,1992,11\nFemale,1992,11\nFemale,1992,9\nFemale,1993,15\nFemale,1993,8\nFemale,1993,19\nFemale,1993,14\nFemale,1993,16\nFemale,1993,19\nFemale,1993,12\nFemale,1993,16\nFemale,1993,12\nFemale,1993,18\nFemale,1993,11\nFemale,1993,21\nFemale,1994,25\nFemale,1994,14\nFemale,1994,17\nFemale,1994,5\nFemale,1994,9\nFemale,1994,17\nFemale,1994,10\nFemale,1994,11\nFemale,1994,21\nFemale,1994,21\nFemale,1994,18\nFemale,1994,19\nFemale,1995,18\nFemale,1995,9\nFemale,1995,7\nFemale,1995,10\nFemale,1995,7\nFemale,1995,10\nFemale,1995,5\nFemale,1995,11\nFemale,1995,13\nFemale,1995,5\nFemale,1995,10\nFemale,1995,14\nFemale,1996,11\nFemale,1996,21\nFemale,1996,5\nFemale,1996,16\nFemale,1996,6\nFemale,1996,8\nFemale,1996,10\nFemale,1996,7\nFemale,1996,28\nFemale,1996,14\nFemale,1996,23\nFemale,1996,14\nFemale,1997,8\nFemale,1997,11\nFemale,1997,9\nFemale,1997,12\nFemale,1997,8\nFemale,1997,10\nFemale,1997,15\nFemale,1997,27\nFemale,1997,14\nFemale,1997,13\nFemale,1997,8\nFemale,1997,7\nFemale,1998,10\nFemale,1998,12\nFemale,1998,6\nFemale,1998,3\nFemale,1998,12\nFemale,1998,6\nFemale,1998,17\nFemale,1998,8\nFemale,1998,12\nFemale,1998,8\nFemale,1998,14\nFemale,1998,13\nFemale,1999,14\nFemale,1999,11\nFemale,1999,16\nFemale,1999,9\nFemale,1999,10\nFemale,1999,4\nFemale,1999,15\nFemale,1999,9\nFemale,1999,10\nFemale,1999,12\nFemale,1999,8\nFemale,1999,15\nFemale,2000,15\nFemale,2000,10\nFemale,2000,15\nFemale,2000,9\nFemale,2000,9\nFemale,2000,6\nFemale,2000,8\nFemale,2000,17\nFemale,2000,6\nFemale,2000,14\nFemale,2000,14\nFemale,2000,10\nFemale,2001,5\nFemale,2001,7\nFemale,2001,6\nFemale,2001,3\nFemale,2001,10\nFemale,2001,8\nFemale,2001,12\nFemale,2001,14\nFemale,2001,12\nFemale,2001,7\nFemale,2001,11\nFemale,2001,20\nFemale,2002,12\nFemale,2002,14\nFemale,2002,8\nFemale,2002,7\nFemale,2002,9\nFemale,2002,10\nFemale,2002,15\nFemale,2002,3\nFemale,2002,13\nFemale,2002,11\nFemale,2002,11\nFemale,2002,13\nFemale,2003,9\nFemale,2003,9\nFemale,2003,7\nFemale,2003,6\nFemale,2003,7\nFemale,2003,14\nFemale,2003,26\nFemale,2003,9\nFemale,2003,1\nFemale,2003,12\nFemale,2003,10\nFemale,2003,6\nFemale,2004,6\nFemale,2004,8\nFemale,2004,7\nFemale,2004,9\nFemale,2004,9\nFemale,2004,7\nFemale,2004,22\nFemale,2004,21\nFemale,2004,16\nFemale,2004,11\nFemale,2004,11\nFemale,2004,12\nFemale,2005,15\nFemale,2005,12\nFemale,2005,14\nFemale,2005,20\nFemale,2005,20\nFemale,2005,19\nFemale,2005,8\nFemale,2005,8\nFemale,2005,8\nFemale,2005,13\nFemale,2005,19\nFemale,2005,10\nFemale,2006,25\nFemale,2006,16\nFemale,2006,10\nFemale,2006,7\nFemale,2006,20\nFemale,2006,18\nFemale,2006,15\nFemale,2006,12\nFemale,2006,34\nFemale,2006,19\nFemale,2006,10\nFemale,2006,15\nFemale,2007,15\nFemale,2007,14\nFemale,2007,9\nFemale,2007,7\nFemale,2007,10\nFemale,2007,9\nFemale,2007,2\nFemale,2007,14\nFemale,2007,18\nFemale,2007,13\nFemale,2007,17\nFemale,2007,12\nFemale,2008,24\nFemale,2008,14\nFemale,2008,8\nFemale,2008,10\nFemale,2008,13\nFemale,2008,14\nFemale,2008,22\nFemale,2008,12\nFemale,2008,14\nFemale,2008,11\nFemale,2008,18\nFemale,2008,15\nFemale,2009,15\nFemale,2009,6\nFemale,2009,6\nFemale,2009,8\nFemale,2009,7\nFemale,2009,13\nFemale,2009,12\nFemale,2009,25\nFemale,2009,16\nFemale,2009,28\nFemale,2009,12\nFemale,2009,7\nFemale,2010,10\nFemale,2010,15\nFemale,2010,5\nFemale,2010,11\nFemale,2010,14\nFemale,2010,10\nFemale,2010,10\nFemale,2010,34\nFemale,2010,14\nFemale,2010,19\nFemale,2010,23\nFemale,2010,19\nFemale,2011,27\nFemale,2011,15\nFemale,2011,12\nFemale,2011,9\nFemale,2011,11\nFemale,2011,8\nFemale,2011,14\nFemale,2011,23\nFemale,2011,10\nFemale,2011,6\nFemale,2011,8\nFemale,2011,7\nFemale,2012,2\nFemale,2012,2\nFemale,2012,4\nFemale,2012,4\nFemale,2012,2\nFemale,2012,5\nFemale,2012,3\nFemale,2012,5\nFemale,2012,6\nFemale,2012,12\nFemale,2012,2\nFemale,2012,11\nFemale,2013,8\nFemale,2013,12\nFemale,2013,7\nFemale,2013,10\nFemale,2013,13\nFemale,2013,4\nMale,1980,16\nMale,1980,10\nMale,1980,21\nMale,1980,11\nMale,1980,10\nMale,1980,13\nMale,1980,24\nMale,1980,11\nMale,1980,13\nMale,1980,42\nMale,1980,19\nMale,1980,23\nMale,1981,28\nMale,1981,16\nMale,1981,19\nMale,1981,17\nMale,1981,18\nMale,1981,32\nMale,1981,21\nMale,1981,16\nMale,1981,20\nMale,1981,22\nMale,1981,12\nMale,1981,19\nMale,1982,15\nMale,1982,10\nMale,1982,20\nMale,1982,18\nMale,1982,14\nMale,1982,31\nMale,1982,18\nMale,1982,19\nMale,1982,16\nMale,1982,22\nMale,1982,30\nMale,1982,16\nMale,1983,13\nMale,1983,16\nMale,1983,13\nMale,1983,16\nMale,1983,34\nMale,1983,12\nMale,1983,16\nMale,1983,29\nMale,1983,20\nMale,1983,20\nMale,1983,24\nMale,1983,14\nMale,1984,21\nMale,1984,14\nMale,1984,17\nMale,1984,17\nMale,1984,17\nMale,1984,23\nMale,1984,18\nMale,1984,22\nMale,1984,23\nMale,1984,24\nMale,1984,17\nMale,1984,28\nMale,1985,13\nMale,1985,22\nMale,1985,6\nMale,1985,13\nMale,1985,17\nMale,1985,16\nMale,1985,27\nMale,1985,16\nMale,1985,16\nMale,1985,27\nMale,1985,25\nMale,1985,43\nMale,1986,46\nMale,1986,27\nMale,1986,15\nMale,1986,18\nMale,1986,15\nMale,1986,23\nMale,1986,10\nMale,1986,16\nMale,1986,17\nMale,1986,35\nMale,1986,24\nMale,1986,14\nMale,1987,28\nMale,1987,25\nMale,1987,22\nMale,1987,15\nMale,1987,28\nMale,1987,25\nMale,1987,24\nMale,1987,26\nMale,1987,26\nMale,1987,25\nMale,1987,21\nMale,1987,27\nMale,1988,33\nMale,1988,30\nMale,1988,39\nMale,1988,24\nMale,1988,31\nMale,1988,22\nMale,1988,34\nMale,1988,39\nMale,1988,41\nMale,1988,51\nMale,1988,28\nMale,1988,35\nMale,1989,48\nMale,1989,29\nMale,1989,21\nMale,1989,33\nMale,1989,31\nMale,1989,30\nMale,1989,21\nMale,1989,30\nMale,1989,26\nMale,1989,28\nMale,1989,54\nMale,1989,42\nMale,1990,18\nMale,1990,25\nMale,1990,24\nMale,1990,35\nMale,1990,47\nMale,1990,32\nMale,1990,52\nMale,1990,33\nMale,1990,32\nMale,1990,21\nMale,1990,24\nMale,1990,20\nMale,1991,30\nMale,1991,19\nMale,1991,29\nMale,1991,25\nMale,1991,19\nMale,1991,27\nMale,1991,26\nMale,1991,33\nMale,1991,24\nMale,1991,32\nMale,1991,26\nMale,1991,32\nMale,1992,36\nMale,1992,31\nMale,1992,26\nMale,1992,32\nMale,1992,26\nMale,1992,57\nMale,1992,38\nMale,1992,41\nMale,1992,37\nMale,1992,53\nMale,1992,30\nMale,1992,45\nMale,1993,54\nMale,1993,34\nMale,1993,46\nMale,1993,40\nMale,1993,54\nMale,1993,56\nMale,1993,32\nMale,1993,49\nMale,1993,44\nMale,1993,56\nMale,1993,38\nMale,1993,46\nMale,1994,59\nMale,1994,38\nMale,1994,52\nMale,1994,28\nMale,1994,28\nMale,1994,57\nMale,1994,41\nMale,1994,41\nMale,1994,30\nMale,1994,44\nMale,1994,39\nMale,1994,40\nMale,1995,41\nMale,1995,15\nMale,1995,43\nMale,1995,18\nMale,1995,32\nMale,1995,34\nMale,1995,22\nMale,1995,16\nMale,1995,30\nMale,1995,29\nMale,1995,27\nMale,1995,32\nMale,1996,37\nMale,1996,29\nMale,1996,15\nMale,1996,29\nMale,1996,19\nMale,1996,10\nMale,1996,23\nMale,1996,24\nMale,1996,29\nMale,1996,25\nMale,1996,40\nMale,1996,37\nMale,1997,48\nMale,1997,26\nMale,1997,16\nMale,1997,20\nMale,1997,16\nMale,1997,30\nMale,1997,28\nMale,1997,40\nMale,1997,42\nMale,1997,31\nMale,1997,18\nMale,1997,15\nMale,1998,20\nMale,1998,22\nMale,1998,15\nMale,1998,24\nMale,1998,22\nMale,1998,10\nMale,1998,40\nMale,1998,23\nMale,1998,25\nMale,1998,26\nMale,1998,23\nMale,1998,32\nMale,1999,26\nMale,1999,25\nMale,1999,17\nMale,1999,18\nMale,1999,16\nMale,1999,6\nMale,1999,31\nMale,1999,21\nMale,1999,25\nMale,1999,24\nMale,1999,24\nMale,1999,30\nMale,2000,27\nMale,2000,18\nMale,2000,32\nMale,2000,30\nMale,2000,33\nMale,2000,13\nMale,2000,14\nMale,2000,27\nMale,2000,38\nMale,2000,44\nMale,2000,24\nMale,2000,23\nMale,2001,6\nMale,2001,12\nMale,2001,14\nMale,2001,7\nMale,2001,9\nMale,2001,14\nMale,2001,30\nMale,2001,29\nMale,2001,14\nMale,2001,26\nMale,2001,19\nMale,2001,22\nMale,2002,13\nMale,2002,17\nMale,2002,26\nMale,2002,18\nMale,2002,39\nMale,2002,31\nMale,2002,27\nMale,2002,28\nMale,2002,29\nMale,2002,19\nMale,2002,17\nMale,2002,20\nMale,2003,20\nMale,2003,29\nMale,2003,20\nMale,2003,7\nMale,2003,18\nMale,2003,25\nMale,2003,38\nMale,2003,21\nMale,2003,11\nMale,2003,24\nMale,2003,14\nMale,2003,14\nMale,2004,16\nMale,2004,15\nMale,2004,6\nMale,2004,14\nMale,2004,18\nMale,2004,17\nMale,2004,41\nMale,2004,29\nMale,2004,16\nMale,2004,20\nMale,2004,20\nMale,2004,27\nMale,2005,25\nMale,2005,19\nMale,2005,19\nMale,2005,32\nMale,2005,28\nMale,2005,34\nMale,2005,30\nMale,2005,26\nMale,2005,13\nMale,2005,25\nMale,2005,40\nMale,2005,22\nMale,2006,50\nMale,2006,34\nMale,2006,27\nMale,2006,25\nMale,2006,33\nMale,2006,54\nMale,2006,30\nMale,2006,44\nMale,2006,68\nMale,2006,35\nMale,2006,32\nMale,2006,25\nMale,2007,30\nMale,2007,37\nMale,2007,20\nMale,2007,26\nMale,2007,29\nMale,2007,24\nMale,2007,15\nMale,2007,45\nMale,2007,24\nMale,2007,22\nMale,2007,36\nMale,2007,25\nMale,2008,37\nMale,2008,28\nMale,2008,19\nMale,2008,13\nMale,2008,28\nMale,2008,57\nMale,2008,37\nMale,2008,35\nMale,2008,23\nMale,2008,37\nMale,2008,26\nMale,2008,37\nMale,2009,28\nMale,2009,15\nMale,2009,28\nMale,2009,21\nMale,2009,28\nMale,2009,30\nMale,2009,28\nMale,2009,37\nMale,2009,28\nMale,2009,45\nMale,2009,39\nMale,2009,24\nMale,2010,33\nMale,2010,17\nMale,2010,38\nMale,2010,33\nMale,2010,16\nMale,2010,39\nMale,2010,20\nMale,2010,38\nMale,2010,22\nMale,2010,22\nMale,2010,47\nMale,2010,74\nMale,2011,36\nMale,2011,32\nMale,2011,22\nMale,2011,30\nMale,2011,45\nMale,2011,19\nMale,2011,44\nMale,2011,33\nMale,2011,40\nMale,2011,12\nMale,2011,10\nMale,2011,10\nMale,2012,15\nMale,2012,5\nMale,2012,16\nMale,2012,11\nMale,2012,14\nMale,2012,6\nMale,2012,11\nMale,2012,12\nMale,2012,4\nMale,2012,17\nMale,2012,9\nMale,2012,23\nMale,2013,33\nMale,2013,16\nMale,2013,17\nMale,2013,12\nMale,2013,8\nMale,2013,11\nMale,2013,1",header=TRUE)');
+        rcommand = rcommand.replace('x.axis','Total').replace('y.axis','Year');
+        rcommand = rcommand.replace('group.by','paste(Year,Character)').replace('fill.by','Character');
+	    rcommand = rcommand.replace('ridges.scale','10');	
+		rcommand = rcommand.replace('scale.fill.manual.color','"#F8766D","#00BFC4"');
+        editor.getSession().setValue(rcommand);
+    });
+</script>
+</head>
+
+<body>
+    <table width=100% border=0>
+    <tr>
+    <td width=60%><div id="drop" style="width:100%;">Drop a file here or <input type="file" id="file" value=""/></div></td>
+    <td>
+    <td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
+    <td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
+    <td><a href="input/bubbleplot.xlsx">Input Template</a></td>
+    </tr>
+    </table>
+    
+    <div class="panel-container">
+        <div id=coding class="panel-left"> </div>
+        
+        <div class="splitter"> </div>
+        
+        <div id="resultdiv" class="panel-right">
+            <iframe id=result width=100% height=100% name=result src=""></iframe>
+        </div>
+    </div>
+    
+    <script>
+        $(".panel-left").resizable({
+            handleSelector: ".splitter",
+            resizeHeight:  false,
+            onDragEnd: function( event, ui ) {editor.resize();}
+        });
+    </script>
+
+    <div id=code_temp1 style="display:none;">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
+library(ggplot2)
+library(ggridges)
+inputdata <- INPUTDATAFRAME
+
+p <- ggplot(inputdata, aes(x = x.axis, y = y.axis, group = group.by, fill = fill.by)) + 
+     geom_density_ridges(scale = ridges.scale, size = 0.12, rel_min_height = 0.0001, alpha = .75) +
+     scale_fill_manual(values = c(scale.fill.manual.color))
+        
+print(p)
+    </div>
+</body>
+</html>

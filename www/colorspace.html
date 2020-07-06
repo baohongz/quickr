@@ -71,12 +71,12 @@ output:
 ---
 
 ```{r, message=FALSE, fig.width=12, fig.height=8, dev='svg', class.source = 'fold-show'}
-library("colorspace")
+library(colorspace)
 library(RColorBrewer)
 library(ggplot2)
 ```
 
-```{r, message=FALSE, fig.width=12, fig.height=8, dev='svg'}
+```{r, message=FALSE, fig.width=12, fig.height=8, dev='svg', class.source = 'fold-hide'}
 hcl_palettes(plot = TRUE)
 
 display.brewer.all()
@@ -117,10 +117,20 @@ p0 <- ggplot(df, aes(Color, number))
 p <- p0 + geom_col(aes(fill = factor(number))) + scale_fill_manual(values = mycolors)
 p <- p + theme(axis.text.x = element_text(angle = 30, hjust = 1)) + guides(fill=guide_legend(title="ID"))
 p
+```
+
+```{r, message=FALSE, fig.width=8, fig.height=1, dev='svg', class.source = 'fold-hide'}
+
+for (i in 2:8) {
+  X <- c(1:i)
+  Y <- rep(1, length(X))
+  p <- ggplot(as.data.frame(cbind(X,Y)),aes(x = X, y=Y, fill = factor(X))) + geom_bar(stat="identity") + theme(legend.position="none") + labs(x="", y="", title=paste(i, "Colors")) + scale_y_continuous(breaks=NULL, expand=c(0,0)) + scale_x_continuous(breaks=NULL, expand=c(0,0))
+  print(p)
+  print(ggplot_build(p)$data[[1]]$fill)
+}
 
 sessionInfo()
 ```
-
 
 	</div>
 	<div class="splitter"></div>
