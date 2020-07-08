@@ -215,8 +215,8 @@ output:
 library(ggplot2)
 library(ggrepel)
 
-dataframe <- INPUTDATAFRAME
-plot = ggplot(dataframe, aes(x = x.axis, y = y.axis, size = size.by, label = label.by, fill = fill.by)) +
+inputdata <- INPUTDATAFRAME
+plot = ggplot(inputdata, aes(x = x.axis, y = y.axis, size = size.by, label = label.by, fill = fill.by)) +
   geom_point(shape=21, alpha=0.5) + 
   geom_text_repel(size = 4, colour = "black") + 
   scale_size_area(max_size=15,name = "size.by.legend.name") +
