@@ -21,12 +21,12 @@
 <script src='assets/js/jquery-resizable.js'></script>
 
 <script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
 <script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 
 <script>
     var editor;
     var resultHTML;
-	ocpu.seturl("https://opencpu.bxgenomics.com/ocpu/library/QRvistime/R");
 
 
     function domarkdown(e){
@@ -132,8 +132,7 @@ console.log(JSON.stringify(worksheet));
                     rcommand = rcommand.replace(new RegExp(result.Setting[i][0],'g'),result.Setting[i][1]);
                 }
             }
-
-console.log(JSON.stringify(result.Data));
+console.log(result.Data);
             var INPUTSTRING = '';
             for (var i=0;i<result.Data.length;i++) {
                 for (var j=0;j<result.Data[i].length;j++) {
