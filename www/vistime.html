@@ -21,18 +21,23 @@
 <script src='assets/js/jquery-resizable.js'></script>
 
 <script src="opencpu-0.5.js"></script>
-<script src="opencpu-server.js"></script>
 <script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
 
 <script>
     var editor;
     var resultHTML;
+	ocpu.seturl("https://opencpu.bxgenomics.com/ocpu/library/QRvistime/R");
+    var settingStr;
+	var dataStr;
+
 
     function domarkdown(e){
         var spinner1 = new Spinner().spin(document.getElementById('resultdiv'));    
         $('#runbtn').prop('disabled', true);
         var req = ocpu.call("rmdtext", {
-            text : editor.getSession().getValue()
+            text : editor.getSession().getValue(),
+			settingStr: settingStr,
+			dataStr: dataStr
         }, function(session){
             console.log(session);
             resultHTML = session.getFileURL("output.html");
@@ -90,6 +95,8 @@
             });
             var supval = {};
             var worksheet = workbook.Sheets['Setting']
+console.log(JSON.stringify(worksheet));
+			settingStr = JSON.stringify(worksheet);
             for (var i=1;i<100;i++) {
                 if (worksheet['A'+i] !== undefined && worksheet['A'+i].v.trim().length>0 && worksheet['A'+i].v.includes('theme')) {
                     var valstr = '';
@@ -131,7 +138,6 @@
                 }
             }
 
-console.log(result.Data);
             var INPUTSTRING = '';
             for (var i=0;i<result.Data.length;i++) {
                 for (var j=0;j<result.Data[i].length;j++) {
@@ -139,7 +145,10 @@ console.log(result.Data);
                 }
                 INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
             }
+			dataStr = INPUTSTRING.slice(0, -1);
+            var rcommand = $('#code_temp1').text();
             rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE)');
+console.log(rcommand);
             editor.getSession().setValue(rcommand);
         }
 
