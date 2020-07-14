@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>vistime</title>
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/sheetjs.css">
+<link rel="stylesheet" href="assets/vendor/alertify.css">
+<style type="text/css" media="screen">
+    iframe { z-index: 999999; }
+</style>
+
+<script src="assets/js/shim.js"></script>
+<script src="assets/js/xlsx.full.min.js"></script>
+<script src="assets/js/dropsheet.js"></script>
+<script src="assets/vendor/spin.js"></script>
+<script src="assets/vendor/alertify.js"></script>
+<script src="assets/js/underscore-min.js"></script>
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+    var editor;
+    var resultHTML;
+	ocpu.seturl("https://opencpu.bxgenomics.com/ocpu/library/QRvistime/R");
+
+
+    function domarkdown(e){
+        var spinner1 = new Spinner().spin(document.getElementById('resultdiv'));    
+        $('#runbtn').prop('disabled', true);
+        var req = ocpu.call("rmdtext", {
+            text : editor.getSession().getValue()
+        }, function(session){
+            console.log(session);
+            resultHTML = session.getFileURL("output.html");
+            $("iframe").attr('src', resultHTML);
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+        }).fail(function(text){
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+            alert("Error: " + req.responseText);
+        });
+    }
+
+    $(function(){
+        editor = ace.edit("coding");
+        editor.setTheme("ace/theme/iplastic");
+        editor.getSession().setMode("ace/mode/r");
+        editor.getSession().setUseWrapMode(true);
+        editor.setFontSize("14px");
+
+        
+        /* oss.sheetjs.com (C) 2014-present SheetJS -- http://sheetjs.com */
+        /* vim: set ts=2: */
+        
+        /** drop target **/
+        var _target = document.getElementById('drop');
+        var _file = document.getElementById('file');
+        var _grid = document.getElementById('grid');
+        var spinner;
+        
+        
+        var _workstart = function() { spinner = new Spinner().spin(_target); }
+        var _workend = function() { spinner.stop(); }
+        
+        /** Alerts **/
+        var _badfile = function() {
+            alertify.alert('This file does not appear to be a valid Excel file.  If we made a mistake, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can take a look.', function(){});
+        };
+        var _pending = function() {
+            alertify.alert('Please wait until the current file is processed.', function(){});
+        };
+        var _large = function(len, cb) {
+            alertify.confirm("This file is " + len + " bytes and may take a few moments.  Your browser may lock up during this process.  Shall we play?", cb);
+        };
+        var _failed = function(e) {
+            console.log(e, e.stack);
+            alertify.alert('We unfortunately dropped the ball here.  Please test the file using the <a href="/js-xlsx/">raw parser</a>.  If there are issues with the file processor, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can make things right.', function(){});
+        };
+        
+        var _onwb = function(workbook, idx) {
+            var result = {};
+            workbook.SheetNames.forEach(function(sheetName) {
+              var roa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw:false, header:1});
+              if(roa.length > 0) result[sheetName] = roa;
+            });
+            var supval = {};
+            var worksheet = workbook.Sheets['Setting']
+console.log(JSON.stringify(worksheet));
+            for (var i=1;i<100;i++) {
+                if (worksheet['A'+i] !== undefined && worksheet['A'+i].v.trim().length>0 && worksheet['A'+i].v.includes('theme')) {
+                    var valstr = '';
+                    var font = worksheet['B'+i].s.font;
+                    if (font.color != null) valstr += 'color="'+font.color.rgb.replace(/^FF/,'#')+'"';
+                    if (font.sz != null) valstr += ', size='+font.sz;
+                    if (font.bold != null) {
+                        valstr += ', face="bold"';
+                        if (font.italic != null) valstr = valstr.slice(0,-1)+'.italic"';
+                    } else {
+                        if (font.italic != null) valstr += ', face="italic"';
+                    }
+                    result.Setting[i-1][1] = valstr;    
+                }
+                if (worksheet['D'+i] === undefined || worksheet['D'+i].v.trim().length<1) continue;
+                console.log(worksheet['D'+i].v);
+                var valstr = '';
+                "EFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(function(letter) {
+                    if (worksheet[letter+i] === undefined) return;
+                    if (worksheet[letter+i].v.trim().length > 0) {
+                        valstr += '"'+worksheet[letter+i].v+'",';
+                    } else {
+                        valstr += '"'+worksheet[letter+i].s.fill.fgColor.rgb.replace(/^FF/,'#')+'",'; // get color
+                    }
+                });
+                supval[worksheet['D'+i].v] = valstr.slice(0,-1);
+            }
+
+
+            var rcommand = $('#code_temp1').text();
+            if (result.Setting) {
+                for (var i=0;i<result.Setting.length;i++) {
+					if (result.Setting[i][0] == null || result.Setting[i][0].trim().length<1) break;	
+                    if (supval[result.Setting[i][1]] != null) result.Setting[i][1] = supval[result.Setting[i][1]];
+                    if (result.Setting[i][0].includes('legend.name')) {
+                        result.Setting[i][1]=result.Setting[i][1].replace(/(?![^\n]{1,16}$)([^\n]{1,16})\s/g, '$1\n');
+                    }
+                    rcommand = rcommand.replace(new RegExp(result.Setting[i][0],'g'),result.Setting[i][1]);
+                }
+            }
+
+console.log(JSON.stringify(result.Data));
+            var INPUTSTRING = '';
+            for (var i=0;i<result.Data.length;i++) {
+                for (var j=0;j<result.Data[i].length;j++) {
+                    INPUTSTRING += result.Data[i][j]+',';
+                }
+                INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
+            }
+            rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE)');
+            editor.getSession().setValue(rcommand);
+        }
+
+        DropSheet({
+            file: _file,
+            drop: _target,
+            on: {
+                workstart: _workstart,
+                workend: _workend,
+                wb: _onwb,
+                foo: 'bar'
+            },
+            errors: {
+                badfile: _badfile,
+                pending: _pending,
+                failed: _failed,
+                large: _large,
+                foo: 'bar'
+            }
+        })
+        var rcommand = $('#code_temp1').text();
+		rcommand = rcommand.replace('INPUTDATAFRAME','read.csv(text=" event,group,start,end,color\n Phase1,Project,2016-12-22,2016-12-23,#c8e6c9\n Phase2,Project,2016-12-23,2016-12-29,#a5d6a7\n Phase3,Project,2016-12-29,2017-01-06,#fb8c00\n Phase4,Project,2017-01-06,2017-02-02,#DD4B39\n Room334,Team1,2016-12-22,2016-12-28,#DEEBF7\n Room335,Team1,2016-12-28,2017-01-05,#C6DBEF\n Room335,Team1,2017-01-05,2017-01-23,#9ECAE1\n Group1,Team2,2016-12-22,2016-12-28,#E5F5E0\n Group2,Team2,2016-12-28,2017-01-23,#C7E9C0\n 3-200,category1,2016-12-25,2016-12-25,#1565c0\n 3-330,category1,2016-12-25,2016-12-25,#1565c0\n 3-223,category1,2016-12-28,2016-12-28,#1565c0\n 3-225,category1,2016-12-28,2016-12-28,#1565c0\n 3-226,category1,2016-12-28,2016-12-28,#1565c0\n 3-226,category1,2017-01-19,2017-01-19,#1565c0\n 3-330,category1,2017-01-19,2017-01-19,#1565c0\n 1-217.0,category2,2016-12-27,2016-12-27,#90caf9\n 4-399.7,moonrising,2017-01-13,2017-01-13,#f44336\n 8-831.0,sundownerdrink,2017-01-17,2017-01-17,#8d6e63\n 9-984.1,birthdayparty,2016-12-22,2016-12-22,#90a4ae\n F01.9,Meetings,2016-12-26,2016-12-26,#e8a735\n Z71,Meetings,2017-01-12,2017-01-12,#e8a735\n B95.7,Meetings,2017-01-15,2017-01-15,#e8a735\n T82.7,Meetings,2017-01-15,2017-01-15,#e8a735",strip.white=TRUE,sep=",",header=TRUE)');
+                           
+        rcommand = rcommand.replace('fig.1.width','10').replace('fig.1.height','7');
+        rcommand = rcommand.replace('vistime.events', 'event');
+        rcommand = rcommand.replace('vistime.groups', 'group');
+        rcommand = rcommand.replace(/vistime.start/g, 'start');
+        rcommand = rcommand.replace(/vistime.end/g, 'end');
+        editor.getSession().setValue(rcommand);
+    });
+</script>
+</head>
+
+<body>
+    <table width=100% border=0>
+    <tr>
+      <td width=60%><div id="drop" style="width:100%;">Drop a file here or <input type="file" id="file" value=""/></div></td>
+    <td>
+    <td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
+    <td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
+    <td><a href="input/vistime.xlsx">Input Template</a></td>
+    </tr>
+    </table>
+    
+    <div class="panel-container">
+        <div id=coding class="panel-left"> </div>
+        
+        <div class="splitter"> </div>
+        
+        <div id="resultdiv" class="panel-right">
+            <iframe id=result width=100% height=100% name=result src=""></iframe>
+        </div>
+    </div>
+    
+    <script>
+        $(".panel-left").resizable({
+            handleSelector: ".splitter",
+            resizeHeight:  false,
+            onDragEnd: function( event, ui ) {editor.resize();}
+        });
+    </script>
+
+    <div id=code_temp1 style="display:none;">
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, warning=FALSE, message=FALSE, fig.width=fig.1.width, fig.height=fig.1.height, dev='svg'}
+library(vistime)
+library(ggplot2)
+
+inputdata <- INPUTDATAFRAME
+
+maxlength=0
+for (fmt in c("%Y-%m-%d","%y-%m-%d","%Y/%m/%d","%y/%m/%d","%m-%d-%Y","%m-%d-%y","%m/%d/%y","%m/%d/%Y","%d%b%Y","%d%b%y")) {
+    len = length(na.omit(as.Date(inputdata$vistime.start,format=fmt,optional=TRUE)))
+    if (len > maxlength) {
+        maxlength = len
+        datefmt = fmt
+    }
+}
+
+inputdata$vistime.start <- as.Date(inputdata$vistime.start,format=datefmt,optional=TRUE)
+inputdata$vistime.end <- as.Date(inputdata$vistime.end,format=datefmt,optional=TRUE)
+
+plot <- gg_vistime(inputdata,events="vistime.events",groups="vistime.groups",start="vistime.start",end="vistime.end") + theme(axis.text=element_text(size=12,face="bold"))
+print(plot)
+    </div>
+</body>
+</html>
