@@ -135,12 +135,14 @@ console.log(JSON.stringify(worksheet));
 console.log(result.Data);
             var INPUTSTRING = '';
             for (var i=0;i<result.Data.length;i++) {
-                for (var j=0;j<result.Data[i].length;j++) {
-                    INPUTSTRING += result.Data[i][j]+';';
+                for (var j=0;j<result.Data[0].length;j++) {
+                    if (result.Data[i][j] === undefined) result.Data[i][j] = 'NA';                    
+                    result.Data[i][j] = result.Data[i][j].replace(new RegExp(',','g',';'));
+                    INPUTSTRING += result.Data[i][j]+',';
                 }
                 INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
             }
-            rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv2(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE)');
+            rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE)');
             editor.getSession().setValue(rcommand);
         }
 
