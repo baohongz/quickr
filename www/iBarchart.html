@@ -137,7 +137,7 @@ console.log(result.Data);
             for (var i=0;i<result.Data.length;i++) {
                 for (var j=0;j<result.Data[0].length;j++) {
                     if (result.Data[i][j] === undefined) result.Data[i][j] = 'NA';                    
-                    result.Data[i][j] = result.Data[i][j].replace(new RegExp(',','g',';'));
+                    result.Data[i][j] = result.Data[i][j].replace(new RegExp(',','g'),' ');
                     INPUTSTRING += result.Data[i][j]+',';
                 }
                 INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
