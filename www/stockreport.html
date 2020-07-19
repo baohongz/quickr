@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<title>stockreport</title>
+<link rel="stylesheet" href="assets/css/splitter.css">    
+<link rel="stylesheet" href="assets/css/w3.css">    
+<link rel="stylesheet" href="assets/css/sheetjs.css">
+<link rel="stylesheet" href="assets/vendor/alertify.css">
+<style type="text/css" media="screen">
+    iframe { z-index: 999999; }
+</style>
+
+<script src="assets/js/shim.js"></script>
+<script src="assets/js/xlsx.full.min.js"></script>
+<script src="assets/js/dropsheet.js"></script>
+<script src="assets/vendor/spin.js"></script>
+<script src="assets/vendor/alertify.js"></script>
+<script src="assets/js/underscore-min.js"></script>
+<script src='assets/js/jquery.min.js'></script>
+<script src='assets/js/jquery-resizable.js'></script>
+
+<script src="opencpu-0.5.js"></script>
+<script src="opencpu-server.js"></script>
+<script src="src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+<script>
+    var editor;
+    var resultHTML;
+
+    function domarkdown(e){
+        var spinner1 = new Spinner().spin(document.getElementById('resultdiv'));    
+        $('#runbtn').prop('disabled', true);
+        var req = ocpu.call("rmdtext", {
+            text : editor.getSession().getValue()
+        }, function(session){
+            console.log(session);
+            resultHTML = session.getFileURL("output.html");
+            $("iframe").attr('src', resultHTML);
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+        }).fail(function(text){
+            spinner1.stop();
+            $('#runbtn').prop('disabled', false);
+            alert("Error: " + req.responseText);
+        });
+    }
+
+    $(function(){
+        editor = ace.edit("coding");
+        editor.setTheme("ace/theme/iplastic");
+        editor.getSession().setMode("ace/mode/r");
+        editor.getSession().setUseWrapMode(true);
+        editor.setFontSize("14px");
+
+        
+        /* oss.sheetjs.com (C) 2014-present SheetJS -- http://sheetjs.com */
+        /* vim: set ts=2: */
+        
+        /** drop target **/
+        var _target = document.getElementById('drop');
+        var _file = document.getElementById('file');
+        var _grid = document.getElementById('grid');
+        var spinner;
+        
+        
+        var _workstart = function() { spinner = new Spinner().spin(_target); }
+        var _workend = function() { spinner.stop(); }
+        
+        /** Alerts **/
+        var _badfile = function() {
+            alertify.alert('This file does not appear to be a valid Excel file.  If we made a mistake, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can take a look.', function(){});
+        };
+        var _pending = function() {
+            alertify.alert('Please wait until the current file is processed.', function(){});
+        };
+        var _large = function(len, cb) {
+            alertify.confirm("This file is " + len + " bytes and may take a few moments.  Your browser may lock up during this process.  Shall we play?", cb);
+        };
+        var _failed = function(e) {
+            console.log(e, e.stack);
+            alertify.alert('We unfortunately dropped the ball here.  Please test the file using the <a href="/js-xlsx/">raw parser</a>.  If there are issues with the file processor, please send this file to <a href="mailto:dev@sheetjs.com?subject=I+broke+your+stuff">dev@sheetjs.com</a> so we can make things right.', function(){});
+        };
+        
+        var _onwb = function(workbook, idx) {
+            var result = {};
+            workbook.SheetNames.forEach(function(sheetName) {
+              var roa = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {raw:false, header:1});
+              if(roa.length > 0) result[sheetName] = roa;
+            });
+            var supval = {};
+            var worksheet = workbook.Sheets['Setting']
+            for (var i=1;i<100;i++) {
+                if (worksheet['A'+i] !== undefined && worksheet['A'+i].v.trim().length>0 && worksheet['A'+i].v.includes('theme')) {
+                    var valstr = '';
+                    var font = worksheet['B'+i].s.font;
+                    if (font.color != null) valstr += 'color="'+font.color.rgb.replace(/^FF/,'#')+'"';
+                    if (font.sz != null) valstr += ', size='+font.sz;
+                    if (font.bold != null) {
+                        valstr += ', face="bold"';
+                        if (font.italic != null) valstr = valstr.slice(0,-1)+'.italic"';
+                    } else {
+                        if (font.italic != null) valstr += ', face="italic"';
+                    }
+                    result.Setting[i-1][1] = valstr;    
+                }
+                if (worksheet['D'+i] === undefined || worksheet['D'+i].v.trim().length<1) continue;
+                console.log(worksheet['D'+i].v);
+                var valstr = '';
+                "EFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(function(letter) {
+                    if (worksheet[letter+i] === undefined) return;
+                    if (worksheet[letter+i].v.trim().length > 0) {
+                        valstr += '"'+worksheet[letter+i].v+'",';
+                    } else {
+                        valstr += '"'+worksheet[letter+i].s.fill.fgColor.rgb.replace(/^FF/,'#')+'",'; // get color
+                    }
+                });
+                supval[worksheet['D'+i].v] = valstr.slice(0,-1);
+            }
+
+
+            var rcommand = $('#code_temp1').text();
+            if (result.Setting) {
+                for (var i=0;i<result.Setting.length;i++) {
+					if (result.Setting[i][0] == null || result.Setting[i][0].trim().length<1) break;
+//                    if (supval[result.Setting[i][1]] != null) result.Setting[i][1] = supval[result.Setting[i][1]];
+                    if (result.Setting[i][0].includes('legend.name')) {
+                        result.Setting[i][1]=result.Setting[i][1].replace(/(?![^\n]{1,16}$)([^\n]{1,16})\s/g, '$1\n');
+                    }
+                    rcommand = rcommand.replace(result.Setting[i][0],result.Setting[i][1]);
+                }
+            }
+
+console.log(result.Data);
+            var INPUTSTRING = '';
+            for (var i=0;i<result.Data.length;i++) {
+                for (var j=0;j<result.Data[i].length;j++) {
+                    INPUTSTRING += result.Data[i][j]+',';
+                }
+                INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
+            }
+            rcommand = rcommand.replace("INPUTDATAFRAME",'read.csv(text="'+INPUTSTRING.slice(0, -1)+'", header=TRUE)');
+            editor.getSession().setValue(rcommand);
+        }
+
+        DropSheet({
+            file: _file,
+            drop: _target,
+            on: {
+                workstart: _workstart,
+                workend: _workend,
+                wb: _onwb,
+                foo: 'bar'
+            },
+            errors: {
+                badfile: _badfile,
+                pending: _pending,
+                failed: _failed,
+                large: _large,
+                foo: 'bar'
+            }
+        })
+        var rcommand = $('#code_temp1').text();
+        rcommand = rcommand.replace('INPUTDATAFRAME','read.csv(text="family,item,score,value\ndemet,fam,V1,204.57\ndemet,fam,V2,45.46\ndemet,fam,V3,399.3\nbhcza,nei,V1,179.89\nbhcza,nei,V2,20.24\nbhcza,nei,V3,20.54\nbhcza,wpz,V1,477.22\nbhcza,wpz,V2,186.67\nbhcza,wpz,V3,403.21\nbhcza,kjj,V1,455.03\nbhcza,kjj,V2,220.04\nbhcza,kjj,V3,288.17\nbhcza,xay,V1,36.83\nbhcza,xay,V2,82.31\nbhcza,xay,V3,369.95\nbhcza,ysq,V1,237.86\nbhcza,ysq,V2,342.76\nbhcza,ysq,V3,475.76\njxkov,nno,V1,248.73\njxkov,nno,V2,235.25\njxkov,nno,V3,280.1\nzhddv,fxo,V1,326.26\nzhddv,fxo,V2,139.79\nzhddv,fxo,V3,489.95\nrmedb,kep,V1,321.93\nrmedb,kep,V2,291.29\nrmedb,kep,V3,307.94\nrmedb,qvq,V1,462.57\nrmedb,qvq,V2,195.01\nrmedb,qvq,V3,143.96\nyzphw,krw,V1,447.95\nyzphw,krw,V2,225.07\nyzphw,krw,V3,447.07\nyzphw,bzj,V1,124.27\nyzphw,bzj,V2,41.85\nyzphw,bzj,V3,24.32\nyzphw,dto,V1,489.91\nyzphw,dto,V2,242.08\nyzphw,dto,V3,422.7", header=TRUE)')
+		rcommand = rcommand.replace("family.label",'FALSE');
+		rcommand = rcommand.replace("fill.palette",'Set1');
+        editor.getSession().setValue(rcommand);
+    });
+</script>
+</head>
+
+<body>
+    <table width=100% border=0>
+    <tr>
+    <td width=60%><div id="drop" style="width:100%;">Drop a file here or <input type="file" id="file" value=""/></div></td>
+    <td>
+    <td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
+    <td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
+    <td><a href="input/stockreport.xlsx">Input Template</a></td>
+    </tr>
+    </table>
+    
+    <div class="panel-container">
+        <div id=coding class="panel-left"> </div>
+        
+        <div class="splitter"> </div>
+        
+        <div id="resultdiv" class="panel-right">
+            <iframe id=result width=100% height=100% name=result src=""></iframe>
+        </div>
+    </div>
+    
+    <script>
+        $(".panel-left").resizable({
+            handleSelector: ".splitter",
+            resizeHeight:  false,
+            onDragEnd: function( event, ui ) {editor.resize();}
+        });
+    </script>
+
+    <div id=code_temp1 style="display:none;">
+
+---
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r block2, warning=FALSE, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
+
+symbol="AMZN"
+
+#data cleanup
+library(dplyr)
+library(tidyr)
+library(magrittr)
+library(stringr)
+library(lubridate)
+library(data.table)
+
+#API and json
+library(httr)
+library(config)
+
+#Web Scraping
+library(rvest)
+
+#Visualization
+library(plotly)
+library(ggplot2)
+library(DT)
+
+#Data
+library(bea.R)
+library(devtools)
+library(gtrendsR)
+
+#Text Analysis
+library(tidytext)
+library(textdata)
+library(wordcloud)
+library(RColorBrewer)
+
+#Forecasting
+library(quantmod)
+library(forecast)
+library(tseries)
+library(prophet)
+
+
+URL <- paste0("https://api.marketstack.com/v1/eod?access_key=1a3016e1a8fba6882861f106bf86e2e7&symbols=",symbol,"&date_from=2014-01-01&date_to=2020-07-01&limit=8000")
+results <- GET(url = URL)
+content <- content(results, "text")
+content %<>% jsonlite::fromJSON(flatten = TRUE) %>% as.data.frame()
+
+stock <- NULL
+stock$name <- content$data.symbol
+stock$date <- as_date(content$data.date)
+stock$close <-content$data.adj_close
+stock$high  <-content$data.adj_high
+stock$low <- content$data.adj_low
+stock$open <- content$data.adj_open
+stock$volume <- content$data.adj_volume
+stock <- as.data.frame(stock)
+datatable(stock)
+
+p1 <- stock %>%
+  plot_ly(x = ~date,
+          type = "candlestick", 
+          open = ~open, 
+          close = ~close, 
+          high = ~high,
+          low = ~low,
+          name = "price") %>%
+  layout(
+    xaxis = list(
+      rangeselector = list(
+        buttons = list(
+          list(
+            count = 1,
+            label = "1 mo",
+            step = "week",
+            stepmode = "backward"),
+          list(
+            count = 3,
+            label = "3 mo",
+            step = "month",
+            stepmode = "backward"),
+          list(
+            count = 6,
+            label = "6 mo",
+            step = "month",
+            stepmode = "backward"),
+          list(
+            count = 1,
+            label = "1 yr",
+            step = "year",
+            stepmode = "backward"),
+          list(
+            count = 3,
+            label = "3 yr",
+            step = "year",
+            stepmode = "backward"),
+          list(step = "all"))),
+      rangeslider = list(visible = FALSE)),
+         yaxis = list(title = "Price ($)",
+                      showgrid = TRUE,
+                      showticklabels = TRUE))
+p2 <- stock %>%
+  plot_ly(x=~date, y=~volume, type='bar', name = "Volume") %>%
+  layout(yaxis = list(title = "Volume"))
+
+p <- subplot(p1, p2, heights = c(0.7,0.3), nrows=2,
+             shareX = TRUE, titleY = TRUE) %>%
+  layout(title = paste0(symbol))
+p
+
+
+trends <- gtrends(keyword = symbol, geo = "US", onlyInterest = TRUE)
+trends <- trends$interest_over_time %>%
+  as_data_frame() %>%
+  select(c(date, hits, keyword))
+trends$date <- as_date(ceiling_date(trends$date, unit = "weeks", change_on_boundary = NULL,
+                            week_start = getOption("lubridate.week.start", 1)))
+trends %>%  
+  plot_ly(x=~date, y=~hits, mode = 'lines', name = "Google Search Trends") %>%
+  layout(title = paste0("Interest over Time: ",symbol), yaxis = list(title = "hits"))
+  
+  
+trends %>%
+  left_join(stock, by = "date") %>%
+  select(one_of(c("date", "hits", "close"))) %>%
+  drop_na() %>%
+  ggplot(aes(hits, close)) + geom_point(color="blue") + geom_smooth(model=lm, color = "black") +
+  labs(title =paste0(symbol,": Relationship between Hits and Close Stock Price"))
+ 
+
+##get company name using web-scraping
+url_overview = paste0("https://www.marketwatch.com/investing/stock/",symbol,"/profile")
+var_overview = read_html(url_overview)
+company <-  var_overview %>% 
+  html_nodes('#instrumentname') %>%
+  html_text() %>%
+  as.character()
+  
+  
+url_news = paste0("https://newsapi.org/v2/everything?q=",str_replace_all(company,pattern = " ", replacement = "%20"),
+                  "&from=",today()-ddays(28),"&sortBy=relevance&pageSize=100&language=en&apiKey=6b9a008d802944b39ae192382e22e723")
+
+#API json to datatable
+results <- GET(url = url_news)
+news <- content(results, "text")
+news %<>% jsonlite::fromJSON(flatten = TRUE) %>% as.data.frame() %>% select(c(articles.title, articles.description, articles.content, articles.publishedAt))
+datatable(news)
+
+news_words <- news %>%
+  select(c("articles.title","articles.description", "articles.content", "articles.publishedAt")) %>%
+  unnest_tokens(word, articles.description) %>%
+  filter(!word %in% append(stop_words$word, values = "chars"), str_detect(word, "^[a-z']+$"))
+news_words$date = as_date(news_words$articles.publishedAt)
+
+words_only <- news_words %>%
+  count(word, sort =TRUE)
+
+set.seed(1)
+wordcloud(words = words_only$word, freq = words_only$n, scale=c(5,.5), max.words=50, colors=brewer.pal(8, "Dark2"))
+
+
+afinn <- textdata::lexicon_afinn(dir=system.file("data", package="textdata"))
+
+sentiment_summary <- news_words %>%
+  left_join(afinn) %>%
+  filter(!is.na(score)) %>%
+  group_by(articles.title, date) %>%
+  summarise(score = mean(score)) %>%
+  mutate(sentiment = ifelse(score>0, "positive","negative")) 
+
+datatable(sentiment_summary)
+
+ggplot(sentiment_summary, aes(date, score)) + geom_bar(stat = "identity", aes(fill=sentiment))  + ggtitle(paste0(symbol, ": News Sentiment Over Time")) 
+
+    </div>
+</body>
+</html>
