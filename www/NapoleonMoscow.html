@@ -205,6 +205,7 @@ console.log(result.Data);
     </script>
 
     <div id=code_temp1 style="display:none;">
+
 ---
 output:
   html_document:
@@ -213,9 +214,7 @@ output:
 
 Charles Minard's famous plot about Napoleon's 1812 winter retreat from Moscow, where the Grande Armée dropped from 422,000 to 10,000 troops.
 
-
 ```{r warning=FALSE, message=FALSE, fig.width=12, fig.height=6, dev='svg'}
-
 library(tidyverse)
 library(lubridate)
 library(ggmap)
@@ -223,62 +222,50 @@ library(ggrepel)
 library(gridExtra)
 library(pander)
 
-cities <- read.table("https://raw.githubusercontent.com/baohongz/fancy-minard/master/input/minard/cities.txt",
-                     header = TRUE, stringsAsFactors = FALSE)
+cities <- read.table("https://raw.githubusercontent.com/baohongz/fancy-minard/master/input/minard/cities.txt", header = TRUE, stringsAsFactors = FALSE)
+troops <- read.table("https://raw.githubusercontent.com/baohongz/fancy-minard/master/input/minard/troops.txt", header = TRUE, stringsAsFactors = FALSE)
+temps <- read.table("https://raw.githubusercontent.com/baohongz/fancy-minard/master/input/minard/temps.txt", header = TRUE, stringsAsFactors = FALSE) %>%
 
-troops <- read.table("https://raw.githubusercontent.com/baohongz/fancy-minard/master/input/minard/troops.txt",
-                     header = TRUE, stringsAsFactors = FALSE)
+mutate(date = dmy(date))  # Convert string to actual date
 
-temps <- read.table("https://raw.githubusercontent.com/baohongz/fancy-minard/master/input/minard/temps.txt",
-                    header = TRUE, stringsAsFactors = FALSE) %>%
-  mutate(date = dmy(date))  # Convert string to actual date
-  
 march.1812.ne.europe <- c(left = 23.5, bottom = 53.4, right = 38.1, top = 56.3)
 
-march.1812.ne.europe.map <- get_stamenmap(bbox = march.1812.ne.europe, zoom = 8,
+march.1812.ne.europe.map <- get_stamenmap(bbox = march.1812.ne.europe, zoom = 8, maptype = "terrain-background", where = "cache")
 
 march.1812.plot <- ggmap(march.1812.ne.europe.map) +
-
-  geom_path(data = troops, aes(x = long, y = lat, group = group, 
-                               color = direction, size = survivors),
-            lineend = "round") +
-  geom_point(data = cities, aes(x = long, y = lat),
-             color = "#DC5B44") +
-  geom_text_repel(data = cities, aes(x = long, y = lat, label = city),
-                  color = "#DC5B44", family = "Open Sans Condensed Bold") +
+  geom_path(data = troops, aes(x = long, y = lat, group = group, color = direction, size = survivors), lineend = "round") +
+  geom_point(data = cities, aes(x = long, y = lat), color = "#DC5B44") +
+  geom_text_repel(data = cities, aes(x = long, y = lat, label = city), color = "#DC5B44", family = "Open Sans Condensed Bold") +
   scale_size(range = c(0.5, 10)) + 
   scale_colour_manual(values = c("#DFC17E", "#252523")) +
-  guides(color = FALSE, size = FALSE) +
-  theme_nothing()
+  guides(color = FALSE, size = FALSE) + theme_nothing()
 
-temps.nice <- temps %>%
-  mutate(nice.label = paste0(temp, "°, ", month, ". ", day))
 
-temps.1812.plot <- ggplot(data = temps.nice, aes(x = long, y = temp)) +
-  geom_line() +
-  geom_label(aes(label = nice.label),
-            family = "Open Sans Condensed Bold", size = 2.5) + 
+
+temps.nice <- temps %>% mutate(nice.label = paste0(temp, "°, ", month, ". ", day))
+
+temps.1812.plot <- ggplot(data = temps.nice, aes(x = long, y = temp)) + geom_line() +
+  geom_label(aes(label = nice.label), family = "Open Sans Condensed Bold", size = 2.5) + 
   labs(x = NULL, y = "° Celsius") +
   scale_x_continuous(limits = ggplot_build(march.1812.plot)$layout$panel_ranges[[1]]$x.range) +
   scale_y_continuous(position = "right") +
   coord_cartesian(ylim = c(-35, 5)) +  # Add some space above/below
   theme_bw(base_family = "Open Sans Condensed Light") +
   theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        axis.text.x = element_blank(), axis.ticks = element_blank(),
-        panel.border = element_blank())
+  panel.grid.minor.x = element_blank(),
+  panel.grid.minor.y = element_blank(),
+  axis.text.x = element_blank(), axis.ticks = element_blank(),
+  panel.border = element_blank())
+
 
 
 both.1812.plot <- rbind(ggplotGrob(march.1812.plot), ggplotGrob(temps.1812.plot))
-
 panels <- both.1812.plot$layout$t[grep("panel", both.1812.plot$layout$name)]
-
-
 map.panel.height <- both.1812.plot$heights[panels][1]
 
-
 both.1812.plot$heights[panels] <- unit(c(map.panel.height, 0.3), "null")
+grid::grid.newpage()
+grid::grid.draw(both.1812.plot)
     </div>
 </body>
 </html>
