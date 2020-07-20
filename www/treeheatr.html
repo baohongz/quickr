@@ -134,7 +134,7 @@
 console.log(result.Data);
             var INPUTSTRING = '';
             for (var i=0;i<result.Data.length;i++) {
-                for (var j=0;j<result.Data[i].length;j++) {
+                for (var j=0;j<result.Data[0].length;j++) {
                     INPUTSTRING += result.Data[i][j]+',';
                 }
                 INPUTSTRING = INPUTSTRING.slice(0, -1) + '\n';
@@ -161,9 +161,8 @@ console.log(result.Data);
             }
         })
         var rcommand = $('#code_temp1').text();
-        rcommand = rcommand.replace('INPUTDATAFRAME','read.csv(text="family,item,score,value\ndemet,fam,V1,204.57\ndemet,fam,V2,45.46\ndemet,fam,V3,399.3\nbhcza,nei,V1,179.89\nbhcza,nei,V2,20.24\nbhcza,nei,V3,20.54\nbhcza,wpz,V1,477.22\nbhcza,wpz,V2,186.67\nbhcza,wpz,V3,403.21\nbhcza,kjj,V1,455.03\nbhcza,kjj,V2,220.04\nbhcza,kjj,V3,288.17\nbhcza,xay,V1,36.83\nbhcza,xay,V2,82.31\nbhcza,xay,V3,369.95\nbhcza,ysq,V1,237.86\nbhcza,ysq,V2,342.76\nbhcza,ysq,V3,475.76\njxkov,nno,V1,248.73\njxkov,nno,V2,235.25\njxkov,nno,V3,280.1\nzhddv,fxo,V1,326.26\nzhddv,fxo,V2,139.79\nzhddv,fxo,V3,489.95\nrmedb,kep,V1,321.93\nrmedb,kep,V2,291.29\nrmedb,kep,V3,307.94\nrmedb,qvq,V1,462.57\nrmedb,qvq,V2,195.01\nrmedb,qvq,V3,143.96\nyzphw,krw,V1,447.95\nyzphw,krw,V2,225.07\nyzphw,krw,V3,447.07\nyzphw,bzj,V1,124.27\nyzphw,bzj,V2,41.85\nyzphw,bzj,V3,24.32\nyzphw,dto,V1,489.91\nyzphw,dto,V2,242.08\nyzphw,dto,V3,422.7", header=TRUE)')
-		rcommand = rcommand.replace("family.label",'FALSE');
-		rcommand = rcommand.replace("fill.palette",'Set1');
+        rcommand = rcommand.replace('INPUTDATAFRAME','penguins');
+		rcommand = rcommand.replace("params.target_lab",'species');
         editor.getSession().setValue(rcommand);
     });
 </script>
@@ -206,12 +205,11 @@ output:
 ---
 
 ```{r block2, warning=FALSE, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
-
 library(treeheatr)
+inputdata <- INPUTDATAFRAME
 
 heat_tree(
-  penguins, target_lab = 'species',
-
+  inputdata, target_lab = 'params.target_lab',
   show_all_feats = TRUE,
   panel_space = 0.02, target_space = 0.2, tree_space_bottom = 0.1, heat_rel_height = 0.4)
     </div>
