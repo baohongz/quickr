@@ -173,7 +173,7 @@ console.log(result.Data);
     <table width=100% border=0>
     <tr>
     <td width=20%><div id="drop" style="width:100%;display:none">Drop a file here or <input type="file" id="file" value=""/></div></td> 
-    <td>Stock Symbol: <input type="text" id="stocksymbol" name="stocksymbol"></td>
+    <td>Stock Symbol: <input type="text" id="stocksymbol" name="stocksymbol" value="AMZN"></td>
     <td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
     <td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
     <!-- <td><a href="input/stockreport.xlsx">Input Template</a></td> -->
@@ -217,9 +217,6 @@ output:
 The report will use a trading data API to obtain historical stock price data to report on stock metrics and performace.
 
 ```{r, warning=FALSE, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
-
-symbol="AMZN"
-
 #data cleanup
 library(dplyr)
 library(tidyr)
@@ -264,7 +261,8 @@ To obtain historical stock data, the World Trading Data API is used.
 ## World Trading Data API
 
 ```{r, warning=FALSE, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
-URL <- paste0("https://api.marketstack.com/v1/eod?access_key=1a3016e1a8fba6882861f106bf86e2e7&symbols=",symbol,"&date_from=2014-01-01&date_to=2020-07-01&limit=8000")
+symbol="AMZN"
+URL <- paste0("https://api.marketstack.com/v1/eod?access_key=1a3016e1a8fba6882861f106bf86e2e7&symbols=",symbol,"&date_from=2014-01-01&date_to=",today(),"&limit=8000")
 results <- GET(url = URL)
 content <- content(results, "text")
 content %<>% jsonlite::fromJSON(flatten = TRUE) %>% as.data.frame()
