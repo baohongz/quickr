@@ -263,7 +263,8 @@ both.1812.plot <- rbind(ggplotGrob(march.1812.plot), ggplotGrob(temps.1812.plot)
 panels <- both.1812.plot$layout$t[grep("panel", both.1812.plot$layout$name)]
 map.panel.height <- both.1812.plot$heights[panels][1]
 
-both.1812.plot$heights[panels] <- unit(c(map.panel.height, 0.3), "null")
+both.1812.plot$heights[panels][2] <- unit(0.3,"null")
+
 grid::grid.newpage()
 grid::grid.draw(both.1812.plot)
     </div>
