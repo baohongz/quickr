@@ -207,20 +207,22 @@ output:
 ---
 
 ```{r block2, warning=FALSE, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
+library(WRS2)
+library(ggstatsplot)
+library(ggthemes)
 set.seed(123)
 
-
-inputdata <- INPUTDATAFRAME
-ggstatsplot::ggwithinstats(
+inputdata <- WineTasting
+ggwithinstats(
   data = inputdata,
-  x = x.axis,
-  y = y.axis,
+  x = Wine,
+  y = Taste,
   title = "figure.title",
   caption = "figure.caption",
   pairwise.comparisons = TRUE, # show pairwise comparison test results
-  ggtheme = ggthemes::theme_fivethirtyeight(),
+  ggtheme = theme_fivethirtyeight(),
   ggstatsplot.layer = FALSE,
-  messages = FALSE
+  messages = FALSE 
 )
     </div>
 </body>
