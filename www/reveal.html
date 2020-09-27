@@ -514,7 +514,7 @@ simdat$gr2<-as.factor(c(rep('high',125),rep('low',125),rep('high',125),rep('low'
 p9 <- ggplot(simdat,aes(x=group,y=score, fill = group, colour = group))+
   geom_flat_violin(position = position_nudge(x = .25, y = 0),adjust =2, trim = TRUE)+
   geom_point(position = position_jitter(width = .15), size = .25)+
-  geom_boxplot(aes(x = as.numeric(group)+0.25, y = score),outlier.shape = NA, alpha = 0.3, width = .1, colour = "BLACK") +
+  geom_boxplot(aes(x = as.numeric(factor(group))+0.25, y = score),outlier.shape = NA, alpha = 0.3, width = .1, colour = "BLACK") +
   ylab('Score')+xlab('Group')+coord_flip()+theme_cowplot()+guides(fill = FALSE, colour = FALSE) + facet_wrap(~gr2)+
   scale_colour_brewer(palette = "Dark2")+
   scale_fill_brewer(palette = "Dark2")+
