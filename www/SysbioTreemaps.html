@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-<title>SysbioTreemaps</title>
+<title>WeightedTreemaps</title>
 <link rel="stylesheet" href="assets/css/splitter.css">    
 <link rel="stylesheet" href="assets/css/w3.css">    
 <link rel="stylesheet" href="assets/css/sheetjs.css">
@@ -182,7 +182,7 @@ console.log(result.Data);
     <td>
     <td>&nbsp;<button id="runbtn" class="w3-button w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="domarkdown();">Run &raquo;</button></td>
     <td>&nbsp;<button class="w3-button w3-bar-item w3-green w3-hover-white w3-hover-text-green" style="font-size:16px" onclick="winf=window.open(resultHTML); return false;">Print</button></td>
-<!--    <td><a href="input/SysbioTreemaps.xlsx">Input Template</a></td> -->
+<!--    <td><a href="input/WeightedTreemaps.xlsx">Input Template</a></td> -->
     </tr>
     </table>
     
@@ -214,7 +214,7 @@ output:
 
 ```{r, warning=FALSE, message=FALSE, fig.width=8, fig.height=7.5, dev='svg'}
 
-library(SysbioTreemaps)
+library(WeightedTreemaps)
 library(tidyverse)
 
 df <- dplyr::starwars %>% 
