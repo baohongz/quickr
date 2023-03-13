@@ -219,7 +219,7 @@ ggplot(data,aes(x=Label, y=response)) +
     geom_smooth(method = "lm", aes(group = paste0(KO, "-", DrugA))) +
     scale_x_upset(order_by = "degree",
                   sets = c("Drug", "8h after", "24h after", "48h after"),
-                  position="bot", name = "") +
+                  position="bottom", name = "") +
     theme_combmatrix(combmatrix.label.text = element_text(size=12),
                      combmatrix.label.extra_spacing = 5) +
     theme(axis.title=element_text(size=14,face="bold"))
