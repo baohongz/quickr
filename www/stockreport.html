@@ -262,7 +262,7 @@ To obtain historical stock data, the World Trading Data API is used.
 
 ```{r, warning=FALSE, message=FALSE, fig.width=8, fig.height=6.5, dev='svg'}
 symbol="AMZN"
-URL <- paste0("https://api.marketstack.com/v1/eod?access_key=1a3016e1a8fba6882861f106bf86e2e7&symbols=",symbol,"&date_from=2014-01-01&date_to=",today(),"&limit=8000")
+URL <- paste0("http://api.marketstack.com/v1/eod?access_key=1a3016e1a8fba6882861f106bf86e2e7&symbols=",symbol,"&date_from=2014-01-01&date_to=",today(),"&limit=8000")
 results <- GET(url = URL)
 content <- content(results, "text")
 content %<>% jsonlite::fromJSON(flatten = TRUE) %>% as.data.frame()
