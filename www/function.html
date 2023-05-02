@@ -2,18 +2,18 @@
 <head>
 <style>
 	html, body { background: #6699FF; text-align: center; font-family : "Lucida Sans Unicode", "Lucida Grande", sans-serif; font-size:14px; }
-	#container { background: #FFF; border: 0px #222 solid; margin: 0 auto; text-align: left; width: 10.25in; padding: 5px; overflow: auto; }
+	#container { background: #FFF; border: 0px #222 solid; margin: 0 auto; text-align: left; width: 100%; padding: 5px; overflow: auto; }
 	#container form { margin: 0 auto; }
 	label { float: left; width: 50px; }
-	.leftCol { float: left; width: 3in; }
-	.rightCol { float: left; width: 7in; }
+	.leftCol { float: left; width: 25%; }
+	.rightCol { float: left; width: 70%; }
 	.references { font-size: x-small; text-indent: 20px; }
 </style>
 <title>Count-based population viability analysis (PVA) using corrupted data</title> 
 <script type="text/javascript" src="https://code.jquery.com/jquery-latest.js"></script>
 <script>
 	// This is done on load since we need the function on the server to deal with the file upload
-	var baseURL = "https://bigdata.biogen.com";
+	var baseURL = "http://ngs.biogen.com";
 	var myfuncURL = baseURL;
 	
 	function saveRFunction(){
@@ -98,7 +98,7 @@ myfunc <- function(file=NULL, header=TRUE,  dataname="wilddogs" ){
 <br>
 </div>
 <!-- This iframe holds the output image. -->
-<iframe style='width: 7in; height: 6in; border: 0px solid #000000; padding: 10px;' name=result id="image_iframe" class="rightCol"></iframe>      
+<iframe style='width: 70%; height: 6in; border: 0px solid #000000; padding: 10px;' name=result id="image_iframe" class="rightCol"></iframe>      
 </div> 
 </body>
 </html>
